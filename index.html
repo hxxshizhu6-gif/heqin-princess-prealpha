@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>《和亲公主》Pre-Alpha v0.9</title>
+  <title>《和亲公主》Pre-Alpha v1.0</title>
   <style>
 :root {
   --bg: #f3efe7;
@@ -168,13 +168,24 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
 .save-status.success { color: #4f6a52; }
 .save-status.warn { color: #8a5b43; }
 
+.archive-panel { margin-bottom: 12px; padding: 18px; }
+.archive-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+.archive-head h2 { margin:0; font-size:18px; }
+.archive-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.archive-card { border:1px solid var(--line); border-radius:12px; padding:13px; background:#fff; }
+.archive-card h3 { margin:0 0 6px; font-size:15px; }
+.archive-meta { color:var(--muted); font-size:12px; margin-bottom:8px; }
+.archive-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px 8px; font-size:12px; }
+.contact-badge { display:inline-block; margin-top:8px; padding:2px 7px; border-radius:999px; background:#edf2ea; color:#50664f; font-size:11px; }
+@media (max-width:820px) { .archive-grid { grid-template-columns:1fr; } }
+
 </style>
 </head>
 <body>
   <main class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">Pre-Alpha · v0.9</p>
+        <p class="eyebrow">Pre-Alpha · v1.0</p>
         <h1>《和亲公主》</h1>
         <p id="dateLabel" class="date-label">第一年 · 一月上旬</p>
       </div>
@@ -184,6 +195,7 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
         <button id="saveBtn" class="ghost-btn">保存</button>
         <button id="loadBtn" class="ghost-btn">读取</button>
         <button id="clearSaveBtn" class="ghost-btn">清除存档</button>
+        <button id="npcArchiveBtn" class="ghost-btn">人物档案</button>
         <button id="debugToggleBtn" class="ghost-btn">显示调试</button>
       </div>
           <p id="saveStatus" class="save-status" aria-live="polite"></p>
@@ -208,6 +220,18 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
         <div id="npcGrid" class="npc-rel-grid"></div>
         <p class="hint">NPC威胁感仅在调试模式显示。</p>
       </article>
+    </section>
+
+    <section id="npcArchivePanel" class="panel archive-panel hidden">
+      <div class="archive-head">
+        <div>
+          <p class="eyebrow">Palace Records · Test</p>
+          <h2>宫中人物档案</h2>
+        </div>
+        <button id="npcArchiveCloseBtn" class="ghost-btn">关闭</button>
+      </div>
+      <p class="hint">当前为原型测试属性；后续宫斗会读取“心机 / 谋略 / 警觉 / 势力”等数值进行对抗。</p>
+      <div id="npcArchiveGrid" class="archive-grid"></div>
     </section>
 
     <section class="panel event-panel">
@@ -252,11 +276,16 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
     </section>
 
     <footer>
-      <p>v0.9验证：六月扩展地图 + 尚宫局/太医院 + 每旬一次宫外许可 + 礼佛寺/驿馆。</p>
+      <p>v1.0验证：位份例银 + 侍寝保底 + NPC属性档案 + 地点人脉。</p>
     </footer>
   </main>
 
   <script>
+window.GAME_RULES = {
+  rankStipends: { "答应":30, "常在":45, "贵人":60, "嫔":80, "妃":120, "贵妃":180, "皇贵妃":240, "皇后":320 },
+  stipendFor(rank) { return this.rankStipends[rank] || 80; }
+};
+
 window.GAME_EVENTS = {
   MAIN_001: {
     id: "MAIN_001",
@@ -989,7 +1018,7 @@ window.GAME_EVENTS = {
         text: state => `
           <p><strong>本旬行动点：${state.meta.actionPoints} / ${state.meta.maxActionPoints}</strong></p>
           <p>每次养成消耗 1 点行动点。行动点清空后才会进入下一旬；随机事件只是插曲，不额外消耗行动点。</p>
-          <p>你可以专注补短板，也可以把一旬拆成不同方向。Pre-Alpha v0.9 的目标，就是确认“数值养成”本身有没有让人想继续点。</p>
+          <p>你可以专注补短板，也可以把一旬拆成不同方向。Pre-Alpha v1.0 的目标，就是确认“数值养成”本身有没有让人想继续点。</p>
           <p class="result-meta">三月已完成主动养成：${state.meta.actionCount || 0} / 9</p>
         `,
         choices: [
@@ -2948,7 +2977,7 @@ window.GAME_EVENTS = {
   };
 
   const SAVE_KEY = "heqinPrincessSaveV03";
-  const SAVE_VERSION = 9;
+  const SAVE_VERSION = 10;
 
   let debugVisible = false;
   let state = null;
@@ -2979,6 +3008,22 @@ window.GAME_EVENTS = {
       },
       wardrobe: {
         currentStyle: "端庄"
+      },
+      court: { rank: "妃" },
+      health: {
+        fertility: debug ? 72 : randomStat(35, 85),
+        fertilityKnown: false
+      },
+      contacts: {},
+      npcProfiles: {
+        emperor:{name:"皇帝",title:"新帝",known:true,appearance:86,wit:88,scheming:92,strategy:90,vigilance:94,influence:100,tags:["笑面狐狸","谨慎亲密","新帝"]},
+        taihou:{name:"太后",title:"太后",known:true,appearance:74,wit:91,scheming:95,strategy:94,vigilance:96,influence:98,tags:["掌权多年","老练","重秩序"]},
+        huagui:{name:"华贵妃",title:"贵妃",known:true,appearance:90,wit:78,scheming:79,strategy:75,vigilance:84,influence:88,tags:["骄傲","旧识","家族压力"]},
+        lixian:{name:"李贤妃",title:"贤妃",known:true,appearance:84,wit:88,scheming:91,strategy:83,vigilance:90,influence:74,tags:["温柔表象","白切黑","安全感匮乏"]},
+        zhao:{name:"赵婕妤",title:"婕妤",known:true,appearance:88,wit:81,scheming:85,strategy:78,vigilance:80,influence:61,tags:["现实","爱财","消息灵通"]},
+        guard:{name:"青梅护卫",title:"故国护卫",known:true,appearance:85,wit:74,scheming:62,strategy:70,vigilance:82,influence:35,tags:["克制","可靠","旧日知己"]},
+        physician:{name:"沈医官（暂名）",title:"太医院医官",known:false,appearance:72,wit:86,scheming:68,strategy:64,vigilance:88,influence:42,tags:["谨慎","医术稳","不多嘴"]},
+        templeContact:{name:"魏娘子（暂名）",title:"寺外香烛铺掌柜",known:false,appearance:67,wit:79,scheming:83,strategy:76,vigilance:85,influence:38,tags:["市井熟客多","会做人","嘴严"]}
       },
       relations: {
         emperor: { favor: 0, trust: 0, vigilance: 0 },
@@ -3011,7 +3056,12 @@ window.GAME_EVENTS = {
         monthStartSnapshot: null,
         currentLocation: "ROOM",
         locationVisits: { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0, SHANGGONG:0, TAIYI:0, TEMPLE:0, INN:0 },
-        outsidePasses: 0
+        outsidePasses: 0,
+        lastStipendAmount: 0,
+        monthsWithoutBedchamber: 0,
+        bedchamberCount: 0,
+        bedchamberCheckedMonths: {},
+        pendingAfterBedchamber: null
       }
     };
   }
@@ -3065,6 +3115,22 @@ window.GAME_EVENTS = {
     if (raw.globals.wardrobeSkill == null) raw.globals.wardrobeSkill = 0;
     if (!raw.wardrobe) raw.wardrobe = { currentStyle: "端庄" };
     if (!raw.wardrobe.currentStyle) raw.wardrobe.currentStyle = "端庄";
+    if (!raw.court) raw.court = { rank:"妃" };
+    if (!raw.court.rank) raw.court.rank = "妃";
+    if (!raw.health) raw.health = { fertility:55, fertilityKnown:false };
+    if (raw.health.fertility == null) raw.health.fertility = 55;
+    if (raw.health.fertilityKnown == null) raw.health.fertilityKnown = false;
+    if (!raw.contacts) raw.contacts = {};
+    if (!raw.npcProfiles) raw.npcProfiles = createState(false).npcProfiles;
+    else {
+      const defaults=createState(false).npcProfiles;
+      for(const [k,v] of Object.entries(defaults)) if(!raw.npcProfiles[k]) raw.npcProfiles[k]=v;
+    }
+    if (raw.meta.lastStipendAmount == null) raw.meta.lastStipendAmount = 0;
+    if (raw.meta.monthsWithoutBedchamber == null) raw.meta.monthsWithoutBedchamber = 0;
+    if (raw.meta.bedchamberCount == null) raw.meta.bedchamberCount = 0;
+    if (!raw.meta.bedchamberCheckedMonths) raw.meta.bedchamberCheckedMonths = {};
+    if (raw.meta.pendingAfterBedchamber == null) raw.meta.pendingAfterBedchamber = null;
     if (raw.currentEventId === "PROTO_V04_END" || raw.currentEventId === "PROTO_V05_END" || raw.currentEventId === "LEGACY_PROTO_V05_END") {
       raw.currentEventId = "SCHEME_001";
       raw.currentNodeId = "incident";
@@ -3377,12 +3443,16 @@ window.GAME_EVENTS = {
     const globals = Object.entries(state.globals)
       .map(([k, v]) => `<div class="stat-row"><span>${labels[k]}</span><span>${v}</span></div>`)
       .join("");
+    const rank=state.court?.rank||"妃";
+    const stipend=window.GAME_RULES.stipendFor(rank);
+    const rankRow = `<div class="stat-row"><span>当前位份</span><span>${rank}</span></div>`;
+    const stipendRow = `<div class="stat-row"><span>每月例银</span><span>${stipend}</span></div>`;
     const apRow = `<div class="stat-row"><span>本旬行动点</span><span>${state.meta.actionPoints}/${state.meta.maxActionPoints}</span></div>`;
     const styleRow = `<div class="stat-row"><span>当前服饰风格</span><span>${state.wardrobe?.currentStyle || "端庄"}</span></div>`;
     const locNames = {ROOM:"寝宫",GARDEN:"御花园",LIBRARY:"藏书处",TAIHOU:"慈宁宫外围",SHANGGONG:"尚宫局",TAIYI:"太医院",TEMPLE:"礼佛寺",INN:"驿馆"};
     const locationRow = `<div class="stat-row"><span>当前地点</span><span>${locNames[state.meta.currentLocation] || "寝宫"}</span></div>`;
     const outsideRow = state.date.month >= 6 ? `<div class="stat-row"><span>本旬外出许可</span><span>${state.meta.outsidePasses || 0}/1</span></div>` : "";
-    $("#resourceGrid").innerHTML = apRow + locationRow + outsideRow + styleRow + globals;
+    $("#resourceGrid").innerHTML = rankRow + stipendRow + apRow + locationRow + outsideRow + styleRow + globals;
 
     const emperor = state.relations.emperor;
     $("#emperorGrid").innerHTML = [
@@ -3402,6 +3472,30 @@ window.GAME_EVENTS = {
       return `<div class="npc-rel-row"><span>${name}</span><span>好感 ${rel.favor}${threat}</span></div>`;
     }).join("");
     $("#npcGrid").innerHTML = npcRows;
+  }
+
+  function renderNpcArchive() {
+    const grid=$("#npcArchiveGrid");
+    if(!grid) return;
+    const profiles=state.npcProfiles||{};
+    const relationMap={emperor:"emperor",taihou:"taihou",huagui:"huagui",lixian:"lixian",zhao:"zhao",guard:"guard"};
+    const statNames={appearance:"容貌",wit:"才智",scheming:"心机",strategy:"谋略",vigilance:"警觉",influence:"势力"};
+    const cards=[];
+    for(const [key,p] of Object.entries(profiles)){
+      if(!p.known) continue;
+      const relKey=relationMap[key];
+      const rel=relKey ? state.relations[relKey] : null;
+      const contact=state.contacts?.[key];
+      cards.push(
+        '<article class="archive-card">'+
+        '<h3>'+p.name+' <span class="hint">· '+p.title+'</span></h3>'+
+        '<div class="archive-meta">'+(p.tags||[]).join(" · ")+(rel ? '｜好感 '+(rel.favor||0) : "")+'</div>'+
+        '<div class="archive-stats">'+Object.keys(statNames).map(k=>'<span>'+statNames[k]+' '+(p[k]??"?")+'</span>').join("")+'</div>'+
+        (contact ? '<span class="contact-badge">人脉熟悉度 '+(contact.familiarity||0)+'</span>' : "")+
+        '</article>'
+      );
+    }
+    grid.innerHTML=cards.join("")||'<p class="hint">暂无已知人物。</p>';
   }
 
   function renderDebug() {
@@ -3463,6 +3557,7 @@ window.GAME_EVENTS = {
     else renderTextNode(event, node);
 
     renderStats();
+    renderNpcArchive();
     renderDebug();
   }
 
@@ -3586,6 +3681,11 @@ window.GAME_EVENTS = {
 
   $("#newRandomBtn").addEventListener("click", () => newGame(false));
   $("#newDebugBtn").addEventListener("click", () => newGame(true));
+  $("#npcArchiveBtn").addEventListener("click", () => {
+    $("#npcArchivePanel").classList.toggle("hidden");
+    renderNpcArchive();
+  });
+  $("#npcArchiveCloseBtn").addEventListener("click", () => $("#npcArchivePanel").classList.add("hidden"));
   $("#debugToggleBtn").addEventListener("click", () => {
     debugVisible = !debugVisible;
     $("#debugToggleBtn").textContent = debugVisible ? "隐藏调试" : "显示调试";
