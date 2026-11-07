@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>《和亲公主》Pre-Alpha v0.8</title>
+  <title>《和亲公主》Pre-Alpha v0.9</title>
   <style>
 :root {
   --bg: #f3efe7;
@@ -174,7 +174,7 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
   <main class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">Pre-Alpha · v0.8</p>
+        <p class="eyebrow">Pre-Alpha · v0.9</p>
         <h1>《和亲公主》</h1>
         <p id="dateLabel" class="date-label">第一年 · 一月上旬</p>
       </div>
@@ -252,7 +252,7 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
     </section>
 
     <footer>
-      <p>v0.8验证：五月宫内地图 + 地点事件权重 + 随机宫廷事件 + 地图月度结算。</p>
+      <p>v0.9验证：六月扩展地图 + 尚宫局/太医院 + 每旬一次宫外许可 + 礼佛寺/驿馆。</p>
     </footer>
   </main>
 
@@ -989,7 +989,7 @@ window.GAME_EVENTS = {
         text: state => `
           <p><strong>本旬行动点：${state.meta.actionPoints} / ${state.meta.maxActionPoints}</strong></p>
           <p>每次养成消耗 1 点行动点。行动点清空后才会进入下一旬；随机事件只是插曲，不额外消耗行动点。</p>
-          <p>你可以专注补短板，也可以把一旬拆成不同方向。Pre-Alpha v0.8 的目标，就是确认“数值养成”本身有没有让人想继续点。</p>
+          <p>你可以专注补短板，也可以把一旬拆成不同方向。Pre-Alpha v0.9 的目标，就是确认“数值养成”本身有没有让人想继续点。</p>
           <p class="result-meta">三月已完成主动养成：${state.meta.actionCount || 0} / 9</p>
         `,
         choices: [
@@ -2041,7 +2041,7 @@ window.GAME_EVENTS = {
 
   MAP_HUB: {
     id: "MAP_HUB",
-    name: "宫内地图",
+    name: "宫廷地图",
     category: "HUB",
     dateLabel: state => {
       const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
@@ -2054,7 +2054,7 @@ window.GAME_EVENTS = {
         text: state => `
           <p><strong>本旬行动点：${state.meta.actionPoints} / ${state.meta.maxActionPoints}</strong></p>
           <p>先选今天去哪里。选地点不扣行动点；选定后再决定具体养成。</p>
-          <p class="result-meta">五月地图测试：地点改变随机事件倾向，不保证每次都出事件。</p>
+          <p class="result-meta">地点改变随机事件倾向。六月起每旬最多外出一次；宫内地点不限切换。</p>
         `,
         choices: [
           {
@@ -2100,6 +2100,42 @@ window.GAME_EVENTS = {
             branch: `<p>你没有直接求见太后，只沿着慈宁宫外围能走的地方过去。真正的权力从来不只在殿里，也在人来人往的廊下。</p>`,
             result: "前往慈宁宫外围｜太后体系/情报权重上升",
             nextEvent: "FREE_HUB"
+          },
+          {
+            id: "SHANGGONG",
+            label: "尚宫局 · 宫务、人事与规矩最密集的地方",
+            condition: state => state.date.month >= 6,
+            conditionText: state => state.date.month >= 6 ? "六月起开放" : "六月起开放",
+            apply(state) {
+              state.meta.currentLocation = "SHANGGONG";
+              state.meta.locationVisits.SHANGGONG = (state.meta.locationVisits.SHANGGONG || 0) + 1;
+            },
+            branch: `<p>你往尚宫局去。这里没有御花园好看，却比很多宫宴更接近真正的后宫运转：谁领了多少份例，谁换了宫人，谁最近总来问规矩。</p>`,
+            result: "前往尚宫局｜宫务/人事事件权重上升",
+            nextEvent: "FREE_HUB"
+          },
+          {
+            id: "TAIYI",
+            label: "太医院 · 调养身体，也能听见许多不能明说的病",
+            condition: state => state.date.month >= 6,
+            conditionText: state => state.date.month >= 6 ? "六月起开放" : "六月起开放",
+            apply(state) {
+              state.meta.currentLocation = "TAIYI";
+              state.meta.locationVisits.TAIYI = (state.meta.locationVisits.TAIYI || 0) + 1;
+            },
+            branch: `<p>太医院药气很重。这里最适合问身体，也最容易看见宫里哪些人最近真的不舒服，哪些人只是“恰好需要一张药方”。</p>`,
+            result: "前往太医院｜体质/药物/人物事件权重上升",
+            nextEvent: "FREE_HUB"
+          },
+          {
+            id: "OUTSIDE",
+            label: "宫门 · 申请外出",
+            condition: state => state.date.month >= 6 && (state.meta.outsidePasses || 0) > 0,
+            conditionText: state => state.date.month < 6 ? "六月起开放" : `本旬剩余外出许可 ${state.meta.outsidePasses || 0}/1`,
+            apply(state) {},
+            branch: `<p>宫门外不是想去就去的地方。你让人准备手续，决定把本旬唯一一次外出机会用在哪里。</p>`,
+            result: "进入宫外地图｜本旬许可尚未消耗",
+            nextEvent: "OUTSIDE_HUB"
           }
         ]
       }
@@ -2316,7 +2352,344 @@ window.GAME_EVENTS = {
           `;
         },
         completeEvent:true,
-        nextEvent:"PROTO_V08_END"
+        nextEvent:"JUNE_001"
+      }
+    }
+  },
+
+  JUNE_001: {
+    id:"JUNE_001",
+    name:"六月·宫门之外",
+    category:"HUB",
+    dateLabel:"第一年 · 六月上旬",
+    startNode:"intro",
+    nodes:{
+      intro:{
+        type:"text",
+        autoApply(state){
+          state.date={year:1,month:6,period:"上旬"};
+          state.meta.monthActionCount=0;
+          state.meta.actionPoints=state.meta.maxActionPoints;
+          state.meta.periodActionCounts={};
+          state.meta.currentLocation="ROOM";
+          state.meta.outsidePasses=1;
+          state.meta.actionsSinceRandom=0;
+          state.meta.locationVisits={ROOM:0,GARDEN:0,LIBRARY:0,TAIHOU:0,SHANGGONG:0,TAIYI:0,TEMPLE:0,INN:0};
+          state.meta.monthStartSnapshot={
+            attributes:{...state.attributes},
+            globals:{...state.globals},
+            relations:JSON.parse(JSON.stringify(state.relations)),
+            wardrobe:JSON.parse(JSON.stringify(state.wardrobe||{}))
+          };
+        },
+        text:()=>`
+          <p>六月，宫里的路已经不够你走了。</p>
+          <p>礼制允许的外出机会并不多。你如今身份渐稳，每旬可以安排一次正式外出，但只能选一个去处。</p>
+          <p><strong>宫外第一次开放两个点：礼佛寺与驿馆。</strong></p>
+          <p>礼佛寺更接近民间、宗室女眷与公开场合；驿馆则天然连着故国使团、旧人和消息。</p>
+          <p>与此同时，宫内新增尚宫局与太医院。地图开始不只是“去哪儿”，而是你想把这一旬的信息结构往哪里推。</p>
+        `,
+        completeEvent:true,
+        nextEvent:"MAP_HUB"
+      }
+    }
+  },
+
+  OUTSIDE_HUB:{
+    id:"OUTSIDE_HUB",
+    name:"宫外地图",
+    category:"HUB",
+    dateLabel:state=>{
+      const cn=["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year]||state.date.year}年 · ${cn[state.date.month]||state.date.month}月${state.date.period}`;
+    },
+    startNode:"map",
+    nodes:{
+      map:{
+        type:"choice",
+        text:state=>`
+          <p><strong>本旬外出许可：${state.meta.outsidePasses||0} / 1</strong></p>
+          <p>选定地点后，本旬不再能第二次出宫。真正的行动仍在到达地点后进行，照常消耗1点行动点。</p>
+        `,
+        choices:[
+          {
+            id:"TEMPLE",
+            label:"礼佛寺 · 香客、宗室女眷与公开场合",
+            condition:state=>(state.meta.outsidePasses||0)>0,
+            apply(state){
+              state.meta.outsidePasses=Math.max(0,(state.meta.outsidePasses||0)-1);
+              state.meta.currentLocation="TEMPLE";
+              state.meta.locationVisits.TEMPLE=(state.meta.locationVisits.TEMPLE||0)+1;
+            },
+            branch:`<p>车驾出宫时，你隔着帘子看见街面重新铺展开来。和入京那天不同，这次你不是被送进来的。</p><p>寺门外人多，却没人知道你究竟是来礼佛，还是来看看宫墙外的人怎么活。</p>`,
+            result:"前往礼佛寺｜消耗本旬外出许可",
+            nextEvent:"FREE_HUB"
+          },
+          {
+            id:"INN",
+            label:"驿馆 · 故国使团、旧人和最敏感的消息",
+            condition:state=>(state.meta.outsidePasses||0)>0,
+            apply(state){
+              state.meta.outsidePasses=Math.max(0,(state.meta.outsidePasses||0)-1);
+              state.meta.currentLocation="INN";
+              state.meta.locationVisits.INN=(state.meta.locationVisits.INN||0)+1;
+            },
+            branch:`<p>驿馆离宫城不算远，规矩却完全不同。这里的人说故国口音、穿故国旧服，也因此比任何地方都更容易让人忘记自己已经身在帝国。</p>`,
+            result:"前往驿馆｜消耗本旬外出许可",
+            nextEvent:"FREE_HUB"
+          },
+          {
+            id:"BACK",
+            label:"暂不外出 · 返回宫内地图",
+            apply(){},
+            branch:`<p>你临时改了主意。外出机会还在，本旬什么时候用都可以。</p>`,
+            result:"未消耗外出许可",
+            nextEvent:"MAP_HUB"
+          }
+        ]
+      }
+    }
+  },
+
+  RAND_SHANGGONG_001:{
+    id:"RAND_SHANGGONG_001",
+    name:"新宫人的去处",
+    category:"RANDOM",
+    minMonth:6,
+    locations:["SHANGGONG"],
+    oncePerRun:true,
+    dateLabel:state=>{
+      const cn=["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year]||state.date.year}年 · ${cn[state.date.month]||state.date.month}月${state.date.period}`;
+    },
+    startNode:"event",
+    nodes:{
+      event:{
+        type:"choice",
+        text:()=>`
+          <p>尚宫局正在给几名新入宫的宫人分派去处。</p>
+          <p>其中一人听见要被拨去偏远宫室，脸色一下白了，却硬忍着没出声。</p>
+          <p>管事女官看见你在旁边，只问了一句：“公主觉得，人应该按资历分，还是按本事分？”</p>
+        `,
+        choices:[
+          {
+            id:"A",
+            label:"按规矩来，资历至少能让人服气。",
+            apply(state,api){api.addGlobal("palacePrestige",1);},
+            branch:`<p>你没有替任何人说情，只说“规矩先立住，例外才有意义”。女官点了点头。</p>`,
+            result:"六宫威望 +1",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"先看本事，再看资历。",
+            apply(state,api){
+              api.addIntel({id:"INTEL_SHANGGONG_NEW_STAFF",name:"尚宫局近期正在重新分派一批新宫人",source:"尚宫局现场",status:"TRUE",tags:["宫务","人事","尚宫局"]});
+            },
+            branch:`<p>“资历能证明待得久，本事才能证明放在哪里有用。”你说。</p><p>女官没说赞同，只把那名宫人的名字在册子上重新圈了一遍。</p>`,
+            result:"获得情报【尚宫局正在重新分派新宫人】",
+            next:"close"
+          }
+        ]
+      },
+      close:{type:"text",text:()=>`<p>你没有替谁改命，只看见了一次后宫最普通的人事流动。可很多大事，最初也只是名单上的一个圈。</p>`,returnToHub:true}
+    }
+  },
+
+  RAND_TAIYI_001:{
+    id:"RAND_TAIYI_001",
+    name:"两包相似的药",
+    category:"RANDOM",
+    minMonth:6,
+    locations:["TAIYI"],
+    oncePerRun:true,
+    dateLabel:state=>{
+      const cn=["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year]||state.date.year}年 · ${cn[state.date.month]||state.date.month}月${state.date.period}`;
+    },
+    startNode:"event",
+    nodes:{
+      event:{
+        type:"choice",
+        text:()=>`
+          <p>你在太医院等医正回话时，看见桌角放着两包外形几乎一样的药。</p>
+          <p>一包写着“调养”，另一包写着“安眠”。药童过来时明显愣了一下，赶紧把两包分开。</p>
+          <p>他解释得很快：“只是包纸拿错了，不是药拿错。”</p>
+        `,
+        choices:[
+          {
+            id:"A",
+            label:"不追问，只记住太医院的流程漏洞。",
+            apply(state,api){
+              api.addIntel({id:"INTEL_TAIYI_LABEL_RISK",name:"太医院包药标签存在被拿错的流程风险",source:"亲眼所见",status:"TRUE",tags:["太医院","药物","流程"]});
+            },
+            branch:`<p>你没有把一次小差错硬说成阴谋。真正有用的是记住：这里确实存在“看起来一样”的环节。</p>`,
+            result:"获得情报【太医院包药存在标签风险】",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"【心机≥55】顺手问两包药分别送往哪一宫。",
+            condition:state=>state.attributes.scheming>=55,
+            conditionText:state=>`当前心机 ${state.attributes.scheming} / 需要 55`,
+            apply(state,api){
+              api.addIntel({id:"INTEL_TAIYI_TWO_PRESCRIPTIONS",name:"两包相似药物分别送往不同宫室",source:"药童回答",status:"PARTIAL",tags:["太医院","药物","宫室"]});
+            },
+            branch:`<p>你问得像闲话。药童先答了一半，意识到不该多嘴时已经晚了。</p><p>信息本身未必有问题，但你记住了两处宫室的名字。</p>`,
+            result:"获得情报【两包药分别送往不同宫室】",
+            next:"close"
+          }
+        ]
+      },
+      close:{type:"text",text:()=>`<p>宫里真正危险的药，不一定来自毒。流程本身，只要有人愿意利用，也能变成漏洞。</p>`,returnToHub:true}
+    }
+  },
+
+  OUT_TEMPLE_001:{
+    id:"OUT_TEMPLE_001",
+    name:"寺门外的议论",
+    category:"RANDOM",
+    minMonth:6,
+    locations:["TEMPLE"],
+    oncePerRun:true,
+    dateLabel:state=>{
+      const cn=["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year]||state.date.year}年 · ${cn[state.date.month]||state.date.month}月${state.date.period}`;
+    },
+    startNode:"event",
+    nodes:{
+      event:{
+        type:"choice",
+        text:()=>`
+          <p>你在寺门外等车时，听见不远处两个香客说起“那位和亲来的公主”。</p>
+          <p>一个说你入宫后很安静，另一个说：“安静才怪，真安静的人哪会让京城记住她？”</p>
+          <p>她们不知道你就在几步之外。</p>
+        `,
+        choices:[
+          {
+            id:"A",
+            label:"什么都不做，听完再走。",
+            apply(state,api){
+              api.addIntel({id:"INTEL_TEMPLE_PUBLIC_IMAGE",name:"民间对和亲公主的印象已从战利品变成‘安静但有存在感’",source:"寺门香客闲谈",status:"PARTIAL",tags:["宫外","民间","和亲"]});
+            },
+            branch:`<p>你没有现身。民间议论不需要“纠正”，只需要知道它正在往哪里走。</p>`,
+            result:"获得情报【民间对和亲公主的新印象】",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"故意让宫女从她们面前经过，不表明身份。",
+            apply(state,api){api.addAttribute("scheming",1);},
+            branch:`<p>宫女从她们面前过去时，衣饰明显带着宫中规制。两个人立刻压低声音。</p><p>你没得到更多话，却确认了一件事：她们知道自己谈的是宫里人，也知道这些话不适合当面说。</p>`,
+            result:"心机 +1",
+            next:"close"
+          }
+        ]
+      },
+      close:{type:"text",text:()=>`<p>回宫的车帘落下时，你忽然想起入京第一日。那时街上的人把你当战利品；如今，他们至少开始把你当成一个会留下痕迹的人。</p>`,returnToHub:true}
+    }
+  },
+
+  GRD_002:{
+    id:"GRD_002",
+    name:"没有署名的信",
+    category:"CHARACTER",
+    minMonth:6,
+    locations:["INN"],
+    oncePerRun:true,
+    dateLabel:state=>{
+      const cn=["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year]||state.date.year}年 · ${cn[state.date.month]||state.date.month}月${state.date.period}`;
+    },
+    startNode:"event",
+    nodes:{
+      event:{
+        type:"choice",
+        text:(state,api)=>{
+          const old=api.hasFlag("FLAG_GRD001_PRIVATE_WORD");
+          return `
+            <p>你到驿馆后，没有立刻见到他。</p>
+            <p>临走前，驿馆小吏却递来一张没有署名的短笺，只说“有人托交”。</p>
+            <p>纸上只有几句寻常话：宫外天气热了，让你别贪凉；若宫里缺故国常用的东西，可以让人递单子出来。</p>
+            ${old?'<p>末尾又多了一句：<strong>“家里仍好。”</strong></p>':''}
+            <p>没有称呼，也没有落款。可你一眼就知道是谁写的。</p>
+          `;
+        },
+        choices:[
+          {
+            id:"A",
+            label:"不回信，只把纸收好。",
+            apply(state,api){api.addRelation("guard","favor",3);},
+            branch:`<p>宫里不是适合留字的地方。你没有回，只把短笺收进最不显眼的夹层。</p>`,
+            result:"青梅护卫好感 +3",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"回一句同样没有署名的话：我知道了。",
+            apply(state,api){api.addRelation("guard","favor",5);api.setFlag("FLAG_GRD002_REPLY","PERMANENT_HISTORY");},
+            branch:`<p>你只写四个字：我知道了。</p><p>没有问候，没有思念，也没有任何经不起检查的东西。越是这样，他越会知道你真的看见了。</p>`,
+            result:"青梅护卫好感 +5｜记录【无名回信】",
+            next:"close"
+          }
+        ]
+      },
+      close:{type:"text",text:()=>`<p>驿馆离宫门不远，可一张纸从这里递进宫里，依然要绕很多人的手。</p><p>你第一次真正感觉到：宫外线不是“自由”，只是规则换了一套。</p>`,returnToHub:true}
+    }
+  },
+
+  MONTHLY_004:{
+    id:"MONTHLY_004",
+    name:"六月结算",
+    category:"HUB",
+    dateLabel:"第一年 · 六月月末",
+    startNode:"summary",
+    nodes:{
+      summary:{
+        type:"text",
+        autoApply(state,api){
+          if(!api.hasFlag("FLAG_MONTHLY004_RESOURCES_APPLIED")){
+            api.addGlobal("silver",80);
+            api.setFlag("FLAG_MONTHLY004_RESOURCES_APPLIED","PERMANENT_HISTORY");
+          }
+          state.date={year:1,month:7,period:"上旬"};
+        },
+        text:state=>{
+          const v=state.meta.locationVisits||{};
+          return `
+            <p><strong>六月结束。</strong></p>
+            <p>这个月你第一次真正把行动范围伸出宫门。</p>
+            <div class="result-box">
+              <p><strong>六月足迹</strong></p>
+              <p>尚宫局：${v.SHANGGONG||0}次｜太医院：${v.TAIYI||0}次<br>
+              礼佛寺：${v.TEMPLE||0}次｜驿馆：${v.INN||0}次</p>
+            </div>
+            <p>月例结算：银两 +80。</p>
+            <p>宫外信息更杂，也更难验证；但对和亲公主来说，真正能改变故国线和青梅护卫线的东西，本来就不可能只从宫墙里长出来。</p>
+          `;
+        },
+        completeEvent:true,
+        nextEvent:"PROTO_V09_END"
+      }
+    }
+  },
+
+  PROTO_V09_END:{
+    id:"PROTO_V09_END",
+    name:"七月将启",
+    category:"HUB",
+    dateLabel:"第一年 · 七月上旬",
+    startNode:"end",
+    nodes:{
+      end:{
+        type:"text",
+        text:state=>`
+          <p><strong>v0.9 六月扩展地图与宫外入口已跑通。</strong></p>
+          <p>本版验证：尚宫局/太医院两类功能地点、每旬一次外出许可、礼佛寺/驿馆两类宫外事件池，以及宫内外不同的信息价值。</p>
+          <p>六月主动养成：${state.meta.monthActionCount||0}次｜总养成：${state.meta.actionCount||0}次。</p>
+          <p>下一步可以开始测试“地图长期记忆”：同一地点去得多，会不会解锁熟人、固定路线和更深层专属事件。</p>
+        `,
+        finishPrototype:true
       }
     }
   },
@@ -2416,7 +2789,7 @@ window.GAME_EVENTS = {
   };
 
   const SAVE_KEY = "heqinPrincessSaveV03";
-  const SAVE_VERSION = 8;
+  const SAVE_VERSION = 9;
 
   let debugVisible = false;
   let state = null;
@@ -2478,7 +2851,8 @@ window.GAME_EVENTS = {
         pendingMilestones: [],
         monthStartSnapshot: null,
         currentLocation: "ROOM",
-        locationVisits: { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0 }
+        locationVisits: { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0, SHANGGONG:0, TAIYI:0, TEMPLE:0, INN:0 },
+        outsidePasses: 0
       }
     };
   }
@@ -2510,7 +2884,11 @@ window.GAME_EVENTS = {
     if (raw.meta.actionsSinceRandom == null) raw.meta.actionsSinceRandom = 0;
     if (!raw.meta.pendingMilestones) raw.meta.pendingMilestones = [];
     if (!raw.meta.currentLocation) raw.meta.currentLocation = "ROOM";
-    if (!raw.meta.locationVisits) raw.meta.locationVisits = { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0 };
+    if (!raw.meta.locationVisits) raw.meta.locationVisits = { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0, SHANGGONG:0, TAIYI:0, TEMPLE:0, INN:0 };
+    for (const key of ["ROOM","GARDEN","LIBRARY","TAIHOU","SHANGGONG","TAIYI","TEMPLE","INN"]) {
+      if (raw.meta.locationVisits[key] == null) raw.meta.locationVisits[key] = 0;
+    }
+    if (raw.meta.outsidePasses == null) raw.meta.outsidePasses = raw.date?.month >= 6 ? 1 : 0;
     if (raw.meta.monthStartSnapshot == null && raw.currentEventId === "FREE_HUB") {
       raw.meta.monthStartSnapshot = {
         attributes: { ...raw.attributes },
@@ -2553,6 +2931,17 @@ window.GAME_EVENTS = {
       raw.meta.monthStartSnapshot = null;
       raw.meta.currentLocation = "ROOM";
       raw.meta.locationVisits = { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0 };
+    }
+    if (raw.currentEventId === "PROTO_V08_END") {
+      raw.currentEventId = "JUNE_001";
+      raw.currentNodeId = "intro";
+      raw.date = { year: 1, month: 6, period: "上旬" };
+      raw.meta.monthActionCount = 0;
+      raw.meta.actionPoints = raw.meta.maxActionPoints || 3;
+      raw.meta.monthStartSnapshot = null;
+      raw.meta.currentLocation = "ROOM";
+      raw.meta.outsidePasses = 1;
+      raw.meta.locationVisits = { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0, SHANGGONG:0, TAIYI:0, TEMPLE:0, INN:0 };
     }
     if (!raw.currentEventId || !raw.currentNodeId) throw new Error("存档缺少当前位置");
     return raw;
@@ -2668,6 +3057,7 @@ window.GAME_EVENTS = {
       }
     }
     state.meta.turnIndex = (state.meta.turnIndex || 0) + 1;
+    if (state.date.month >= 6) state.meta.outsidePasses = 1;
   }
 
   function weightedPick(items) {
@@ -2692,7 +3082,11 @@ window.GAME_EVENTS = {
       ROOM:    { DAILY:0.60, CHARACTER:0.15, INTEL:0.25, chance:-0.02 },
       GARDEN:  { DAILY:0.30, CHARACTER:0.55, INTEL:0.15, chance:0.12 },
       LIBRARY: { DAILY:0.25, CHARACTER:0.15, INTEL:0.60, chance:0.05 },
-      TAIHOU:  { DAILY:0.20, CHARACTER:0.40, INTEL:0.40, chance:0.08 }
+      TAIHOU:  { DAILY:0.20, CHARACTER:0.40, INTEL:0.40, chance:0.08 },
+      SHANGGONG:{ DAILY:0.50, CHARACTER:0.15, INTEL:0.35, chance:0.06 },
+      TAIYI:   { DAILY:0.45, CHARACTER:0.20, INTEL:0.35, chance:0.06 },
+      TEMPLE:  { DAILY:0.45, CHARACTER:0.35, INTEL:0.20, chance:0.16 },
+      INN:     { DAILY:0.20, CHARACTER:0.50, INTEL:0.30, chance:0.18 }
     };
     const profile = locationProfiles[state.meta.currentLocation] || locationProfiles.ROOM;
     const pityTriggered = (state.meta.actionsSinceRandom || 0) >= 3;
@@ -2700,8 +3094,8 @@ window.GAME_EVENTS = {
     if (Math.random() >= chance) return null;
 
     const pools = {
-      DAILY: ["RAND_001", "RAND_004", "RAND_007", "RAND_008", "RAND_010", "RAND_ROOM_001", "RAND_GARDEN_001"],
-      CHARACTER: ["CHAR_ZJY_001", "CHAR_LXF_001", "CHAR_EMP_001", "HGF_002", "CHAR_ZJY_002", "CHAR_TAIHOU_001"],
+      DAILY: ["RAND_001", "RAND_004", "RAND_007", "RAND_008", "RAND_010", "RAND_ROOM_001", "RAND_GARDEN_001", "RAND_SHANGGONG_001", "RAND_TAIYI_001", "OUT_TEMPLE_001"],
+      CHARACTER: ["CHAR_ZJY_001", "CHAR_LXF_001", "CHAR_EMP_001", "HGF_002", "CHAR_ZJY_002", "CHAR_TAIHOU_001", "GRD_002"],
       INTEL: ["INTEL_001", "INTEL_002", "INTEL_LIBRARY_001"]
     };
 
@@ -2754,6 +3148,10 @@ window.GAME_EVENTS = {
     } else if (finishingMonth && state.date.year === 1 && state.date.month === 5) {
       state.meta.actionPoints = 0;
       state.currentEventId = "MONTHLY_003";
+      state.currentNodeId = "summary";
+    } else if (finishingMonth && state.date.year === 1 && state.date.month === 6) {
+      state.meta.actionPoints = 0;
+      state.currentEventId = "MONTHLY_004";
       state.currentNodeId = "summary";
     } else {
       advancePeriod();
@@ -2816,9 +3214,10 @@ window.GAME_EVENTS = {
       .join("");
     const apRow = `<div class="stat-row"><span>本旬行动点</span><span>${state.meta.actionPoints}/${state.meta.maxActionPoints}</span></div>`;
     const styleRow = `<div class="stat-row"><span>当前服饰风格</span><span>${state.wardrobe?.currentStyle || "端庄"}</span></div>`;
-    const locNames = {ROOM:"寝宫",GARDEN:"御花园",LIBRARY:"藏书处",TAIHOU:"慈宁宫外围"};
+    const locNames = {ROOM:"寝宫",GARDEN:"御花园",LIBRARY:"藏书处",TAIHOU:"慈宁宫外围",SHANGGONG:"尚宫局",TAIYI:"太医院",TEMPLE:"礼佛寺",INN:"驿馆"};
     const locationRow = `<div class="stat-row"><span>当前地点</span><span>${locNames[state.meta.currentLocation] || "寝宫"}</span></div>`;
-    $("#resourceGrid").innerHTML = apRow + locationRow + styleRow + globals;
+    const outsideRow = state.date.month >= 6 ? `<div class="stat-row"><span>本旬外出许可</span><span>${state.meta.outsidePasses || 0}/1</span></div>` : "";
+    $("#resourceGrid").innerHTML = apRow + locationRow + outsideRow + styleRow + globals;
 
     const emperor = state.relations.emperor;
     $("#emperorGrid").innerHTML = [
@@ -2994,9 +3393,9 @@ window.GAME_EVENTS = {
   function showFinish() {
     api.completeEvent(state.currentEventId);
     $("#eventText").innerHTML = `
-      <p><strong>v0.8 五月宫内地图循环已跑通。</strong></p>
-      <p>本版已经验证：地点选择不耗行动点，但会改变随机事件池；养成依旧有确定收益，宫廷随机事件继续作为行动后的不确定层。</p>
-      <p>下一阶段可以继续扩充宫内地点，再逐步开放礼佛、驿馆、围猎等第一批宫外地图。</p>
+      <p><strong>v0.9 六月扩展地图与宫外入口已跑通。</strong></p>
+      <p>本版已经验证：尚宫局/太医院功能地点、每旬一次外出许可、礼佛寺/驿馆宫外事件池，以及宫内外不同的信息价值。</p>
+      <p>下一阶段可以测试“地图长期记忆”：同一地点去得多，会不会解锁熟人、固定路线与更深层专属事件。</p>
     `;
     $("#choiceArea").innerHTML = "";
     $("#resultArea").classList.add("hidden");
