@@ -2019,6 +2019,7 @@ window.GAME_EVENTS = {
           state.meta.periodActionCounts = {};
           state.meta.currentLocation = "ROOM";
           state.meta.locationVisits = { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0 };
+          state.meta.actionsSinceRandom = 0;
           state.meta.monthStartSnapshot = {
             attributes: { ...state.attributes },
             globals: { ...state.globals },
@@ -2728,7 +2729,9 @@ window.GAME_EVENTS = {
         const onceBlocked = events[id]?.oncePerRun && state.meta.randomSeen?.[id];
         const minMonth = events[id]?.minMonth || 1;
         const monthBlocked = state.date.year === 1 && state.date.month < minMonth;
-        return !onceBlocked && !monthBlocked && (last == null || (state.meta.actionCount - last) >= 3);
+        const locations = events[id]?.locations;
+        const locationBlocked = Array.isArray(locations) && locations.length && !locations.includes(state.meta.currentLocation);
+        return !onceBlocked && !monthBlocked && !locationBlocked && (last == null || (state.meta.actionCount - last) >= 3);
       });
     }
     if (!eligible.length) return null;
