@@ -1439,6 +1439,10 @@ window.GAME_EVENTS = {
     if (!raw.completedEvents) raw.completedEvents = [];
     if (!raw.flags) raw.flags = {};
     if (!raw.intel) raw.intel = {};
+    if (raw.currentEventId === "PROTO_V04_END") {
+      raw.currentEventId = "PROTO_V05_END";
+      raw.currentNodeId = "end";
+    }
     if (!raw.currentEventId || !raw.currentNodeId) throw new Error("存档缺少当前位置");
     return raw;
   }
