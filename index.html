@@ -2489,6 +2489,7 @@ window.GAME_EVENTS = {
     if (state.meta.autoAppliedNodes[key]) return;
     state.meta.autoAppliedNodes[key] = true;
     node.autoApply(state, api);
+    autoSave();
   }
 
   function render() {
