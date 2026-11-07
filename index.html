@@ -2926,6 +2926,13 @@ window.GAME_EVENTS = {
         finishAction(choice);
         return;
       }
+      if (choice.nextEvent) {
+        state.currentEventId = choice.nextEvent;
+        state.currentNodeId = events[choice.nextEvent].startNode;
+        autoSave();
+        render();
+        return;
+      }
       state.currentNodeId = choice.next || node.next;
       autoSave();
       render();
@@ -2947,7 +2954,7 @@ window.GAME_EVENTS = {
     }
 
     if (node.returnToHub) {
-      $("#continueBtn").textContent = "进入下一旬";
+      $("#continueBtn").textContent = state.meta.actionPoints > 0 ? "返回本旬" : "进入下一旬";
       $("#continueBtn").onclick = returnFromRandom;
       return;
     }
