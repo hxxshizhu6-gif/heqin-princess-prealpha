@@ -969,7 +969,10 @@ window.GAME_EVENTS = {
     id: "FREE_HUB",
     name: "旬内养成",
     category: "HUB",
-    dateLabel: state => formatGameDate(state.date),
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
     startNode: "action",
     nodes: {
       action: {
@@ -1055,7 +1058,10 @@ window.GAME_EVENTS = {
     id: "RAND_001",
     name: "两边的规矩",
     category: "RANDOM",
-    dateLabel: state => formatGameDate(state.date),
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
     startNode: "event",
     nodes: {
       event: {
@@ -1091,7 +1097,10 @@ window.GAME_EVENTS = {
     id: "RAND_004",
     name: "宫猫钻进陪嫁箱",
     category: "RANDOM",
-    dateLabel: state => formatGameDate(state.date),
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
     startNode: "event",
     nodes: {
       event: {
@@ -1124,7 +1133,10 @@ window.GAME_EVENTS = {
     id: "RAND_007",
     name: "不合口味",
     category: "RANDOM",
-    dateLabel: state => formatGameDate(state.date),
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
     startNode: "event",
     nodes: {
       event: {
@@ -1159,7 +1171,10 @@ window.GAME_EVENTS = {
     id: "RAND_008",
     name: "口音",
     category: "RANDOM",
-    dateLabel: state => formatGameDate(state.date),
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
     startNode: "event",
     nodes: {
       event: {
@@ -1200,7 +1215,10 @@ window.GAME_EVENTS = {
     id: "RAND_010",
     name: "送错的礼单",
     category: "RANDOM",
-    dateLabel: state => formatGameDate(state.date),
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
     startNode: "event",
     nodes: {
       event: {
@@ -1233,7 +1251,10 @@ window.GAME_EVENTS = {
     id: "CHAR_ZJY_001",
     name: "赵婕妤来串门",
     category: "CHARACTER",
-    dateLabel: state => formatGameDate(state.date),
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
     startNode: "event",
     nodes: {
       event: {
@@ -1280,7 +1301,10 @@ window.GAME_EVENTS = {
     id: "INTEL_001",
     name: "一句没说完的话",
     category: "INTEL",
-    dateLabel: state => formatGameDate(state.date),
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
     startNode: "event",
     nodes: {
       event: {
