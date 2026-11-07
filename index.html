@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>《和亲公主》Pre-Alpha v0.3</title>
+  <title>《和亲公主》Pre-Alpha v0.4</title>
   <style>
 :root {
   --bg: #f3efe7;
@@ -174,7 +174,7 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
   <main class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">Pre-Alpha · v0.3</p>
+        <p class="eyebrow">Pre-Alpha · v0.4</p>
         <h1>《和亲公主》</h1>
         <p id="dateLabel" class="date-label">第一年 · 一月上旬</p>
       </div>
@@ -252,7 +252,7 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
     </section>
 
     <footer>
-      <p>v0.3验证：v0.2全部流程 + 浏览器本地存档 + GitHub Pages部署准备。</p>
+      <p>v0.4验证：三旬行动循环 + 随机事件池 + 主线插入 + 自动存档。</p>
     </footer>
   </main>
 
@@ -893,6 +893,345 @@ window.GAME_EVENTS = {
         type: "text",
         text: () => `<p>廊下的风停了。你与她各自往不同方向走。</p><p>没有输赢。只是从今天开始，你们都知道：对方不是一句“宠妃”或“和亲公主”就能概括的人。</p>`,
         completeEvent: true,
+        nextEvent: "MAIN_005"
+      }
+    }
+  },
+
+  MAIN_005: {
+    id: "MAIN_005",
+    name: "异国流言",
+    category: "MAIN",
+    dateLabel: "第一年 · 三月上旬",
+    startNode: "rumor",
+    nodes: {
+      rumor: {
+        type: "choice",
+        autoApply(state) {
+          state.date = { year: 1, month: 3, period: "上旬" };
+        },
+        text: () => `
+          <p>三月刚到，宫里的风向先变了。</p>
+          <p>你经过廊下时，两个宫人看见你，声音立刻低了下去。第二日，陪嫁女官回来禀报：有人开始把故国那句“亡己国，兴他国”的预言添油加醋，说你入谁家，谁家就要生变。</p>
+          <p>眼下还只是闲话。可闲话一旦被谁看中，就会变成工具。</p>
+          <p><strong>你决定先怎么处理？</strong></p>
+        `,
+        choices: [
+          {
+            id: "A",
+            label: "不急着解释。先照常行事，让流言找不到失态的证据。",
+            apply(state, api) {
+              api.addGlobal("palacePrestige", 2);
+              api.setFlag("FLAG_MAIN005_STEADY_RESPONSE", "PERMANENT_HISTORY");
+            },
+            branch: `<p>你没有召人训话，也没有急着澄清。请安、用膳、见人，一切照旧。</p><p>流言最喜欢追着慌乱跑。你先不给它这个机会。</p>`,
+            result: "六宫威望 +2；记录【稳住不辩】。",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "让贴身宫人只记传播路径，不惊动传话的人。",
+            apply(state, api) {
+              api.addGlobal("staffLoyalty", 2);
+              api.setFlag("FLAG_MAIN005_TRACE_RUMOR", "ACTIVE_STATE");
+            },
+            branch: `<p>你只吩咐了一件事：“谁从谁那里听来的，记下来。别问，别拦，也别让人知道我们在记。”</p><p>你暂时不碰流言本身，只看它从哪里长出来。</p>`,
+            result: "宫人忠诚 +2；开启【流言传播链】观察状态。",
+            next: "close"
+          },
+          {
+            id: "C",
+            label: "在公开场合主动提起预言，把它从禁忌变成一句旧话。",
+            apply(state, api) {
+              api.addGlobal("palacePrestige", 3);
+              api.setFlag("FLAG_MAIN005_PUBLICLY_DEFUSES", "PERMANENT_HISTORY");
+            },
+            branch: `<p>再有人欲言又止时，你反而先笑着提起：“那句预言么？故国拿它吓了本宫十几年，没想到进了帝国还要再听。”</p><p>你说得太自然，旁人反而不好继续把它当神秘禁忌。</p>`,
+            result: "六宫威望 +3；记录【主动去魅】。",
+            next: "close"
+          }
+        ]
+      },
+      close: {
+        type: "text",
+        text: () => `
+          <p>流言没有消失，只是暂时换了一个走法。</p>
+          <p>真正利用它的人还没有露面。你先把这一笔记下，然后继续过自己的日子。</p>
+          <p><strong>从现在开始，三月进入自由养成阶段。</strong></p>
+        `,
+        completeEvent: true,
+        nextEvent: "FREE_HUB"
+      }
+    }
+  },
+
+  FREE_HUB: {
+    id: "FREE_HUB",
+    name: "旬内行动",
+    category: "HUB",
+    dateLabel: state => formatGameDate(state.date),
+    startNode: "action",
+    nodes: {
+      action: {
+        type: "choice",
+        text: state => `
+          <p>这一旬没有必须立刻处理的大事。</p>
+          <p>你可以把时间花在自己身上，也可以经营身边的人和事。每次行动消耗一旬，并有概率触发一件随机事件。</p>
+          <p class="result-meta">已完成自由行动：${state.meta.actionCount || 0} / 3（Pre-Alpha v0.4测试范围）</p>
+        `,
+        choices: [
+          {
+            id: "READ",
+            label: "读书 · 整理故国与帝国典籍",
+            consumesTurn: true,
+            apply(state, api) { api.addAttribute("wit", 3); },
+            branch: `<p>你挑了几卷最实用的书，从制度、地理到礼法，一页页看过去。宫里的日子很长，知道得多一点，总不会是坏事。</p>`,
+            result: "才智 +3",
+            randomBias: 0
+          },
+          {
+            id: "ETIQUETTE",
+            label: "习礼 · 熟悉帝国宫廷仪程",
+            consumesTurn: true,
+            apply(state, api) { api.addAttribute("posture", 2); api.addAttribute("temperament", 1); },
+            branch: `<p>你没有把故国的礼全丢掉，也没有拒绝新的规矩。该学的先学会，什么时候用、什么时候不用，再由你自己决定。</p>`,
+            result: "体态 +2｜气质 +1",
+            randomBias: 0
+          },
+          {
+            id: "MANAGE",
+            label: "理宫 · 整顿自己宫里的日常事务",
+            consumesTurn: true,
+            apply(state, api) { api.addGlobal("staffLoyalty", 2); api.addGlobal("palacePrestige", 1); },
+            branch: `<p>你把账册、轮值和陪嫁宫人的差事重新理了一遍。事情不大，却能让每个人知道自己该做什么、出了错该找谁。</p>`,
+            result: "宫人忠诚 +2｜六宫威望 +1",
+            randomBias: 0.05
+          },
+          {
+            id: "REST",
+            label: "调养 · 把这一旬留给身体",
+            consumesTurn: true,
+            apply(state, api) { api.addAttribute("constitution", 3); },
+            branch: `<p>你推掉不必要的应酬，按时用膳、早些歇息。深宫里活得久，本身就是一种本事。</p>`,
+            result: "体质 +3",
+            randomBias: -0.1
+          },
+          {
+            id: "PLAN",
+            label: "复盘 · 整理近来的关系与得失",
+            consumesTurn: true,
+            apply(state, api) { api.addAttribute("scheming", 1); api.addAttribute("strategy", 2); },
+            branch: `<p>你把近来见过的人、说过的话、欠下的人情和别人露出的破绽逐一写下，又在最后把纸烧了。</p>`,
+            result: "心机 +1｜谋略 +2",
+            randomBias: 0
+          },
+          {
+            id: "WALK",
+            label: "散步 · 去宫里走走，看今天会遇见什么",
+            consumesTurn: true,
+            apply() {},
+            branch: `<p>你没有给这一旬安排明确目标，只带着一名宫女出门。宫里最有意思的事，往往不在计划里。</p>`,
+            result: "无固定属性收益；随机事件概率提高。",
+            randomBias: 0.25
+          }
+        ]
+      }
+    }
+  },
+
+  RAND_001: {
+    id: "RAND_001",
+    name: "两边的规矩",
+    category: "RANDOM",
+    dateLabel: state => formatGameDate(state.date),
+    startNode: "event",
+    nodes: {
+      event: {
+        type: "choice",
+        text: () => `
+          <p>你回宫时，听见院里有人争执。</p>
+          <p>陪嫁宫女坚持按故国旧习摆放器物，本朝宫人却说宫里一直不是这个规矩。两边声音都不大，可谁也不肯先退。</p>
+        `,
+        choices: [
+          {
+            id: "A",
+            label: "把两边都叫来，先问清哪些是必须遵守的宫规。",
+            apply(state, api) { api.addGlobal("staffLoyalty", 3); },
+            branch: `<p>你没有先问谁对谁错，只把“宫规”和“习惯”分开。必须守的照守，纯属习惯的，各退一步。</p>`,
+            result: "宫人忠诚 +3",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "直接定规矩：在帝国宫里先按帝国制度办。",
+            apply(state, api) { api.addGlobal("palacePrestige", 2); api.addGlobal("staffLoyalty", -1); },
+            branch: `<p>你没有让争执继续：“这里是帝国宫城，先按现行规矩。故国旧习若不冲突，再留。”</p><p>事情很快停了，只是陪嫁旧人难免有一点失落。</p>`,
+            result: "六宫威望 +2｜宫人忠诚 -1",
+            next: "close"
+          }
+        ]
+      },
+      close: { type: "text", text: () => `<p>一场小争执散了。真正麻烦的从来不是规矩不同，而是谁觉得自己的规矩被看轻。</p>`, returnToHub: true }
+    }
+  },
+
+  RAND_004: {
+    id: "RAND_004",
+    name: "宫猫钻进陪嫁箱",
+    category: "RANDOM",
+    dateLabel: state => formatGameDate(state.date),
+    startNode: "event",
+    nodes: {
+      event: {
+        type: "choice",
+        text: () => `<p>宫女整理陪嫁箱时，忽然从最里面抱出一团会动的东西。</p><p>一只不知道从哪里钻来的宫猫蹲在绸缎上，理直气壮地看着你们。</p>`,
+        choices: [
+          {
+            id: "A",
+            label: "让人把它送回去，别惊动太多人。",
+            apply(state, api) { api.setFlag("FLAG_RAND004_MET_PALACE_CAT", "PERMANENT_HISTORY"); },
+            branch: `<p>宫女抱着猫出去时，它还回头看了你一眼。宫里难得有一件事，不需要猜背后是谁。</p>`,
+            result: "记录【见过宫猫】。",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "先让它待一会儿，顺便问问是谁养的。",
+            apply(state, api) { api.addGlobal("staffLoyalty", 1); api.setFlag("FLAG_RAND004_MET_PALACE_CAT", "PERMANENT_HISTORY"); },
+            branch: `<p>几名宫女难得放松下来，一边找猫的主人，一边低声笑。你没有阻止。</p>`,
+            result: "宫人忠诚 +1；记录【见过宫猫】。",
+            next: "close"
+          }
+        ]
+      },
+      close: { type: "text", text: () => `<p>猫最后还是被人抱走了。院里安静下来，方才那点笑声却留了一阵。</p>`, returnToHub: true }
+    }
+  },
+
+  RAND_007: {
+    id: "RAND_007",
+    name: "不合口味",
+    category: "RANDOM",
+    dateLabel: state => formatGameDate(state.date),
+    startNode: "event",
+    nodes: {
+      event: {
+        type: "choice",
+        text: () => `<p>连着几日，御膳送来的东西都挑不出错，只是你吃得比平时少。</p><p>不是难吃，只是不习惯。陪嫁宫女看出来了，小声问要不要去打点御膳房。</p>`,
+        choices: [
+          {
+            id: "A",
+            label: "先适应，不必为口味惊动别人。",
+            apply() {},
+            branch: `<p>你摇头：“先吃着。真有吃不下的，再说。”</p><p>在陌生地方生活，总有些东西要慢慢习惯。</p>`,
+            result: "无即时数值变化。",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "花些银两，让人把口味微调到更适合你。",
+            condition: state => state.globals.silver >= 20,
+            conditionText: state => `当前银两 ${state.globals.silver} / 需要 20`,
+            apply(state, api) { api.addGlobal("silver", -20); api.addGlobal("staffLoyalty", 1); },
+            branch: `<p>你没有要求另开一套故国膳食，只让人把几样常吃的菜调淡些。银子花得不多，日子却舒服了一点。</p>`,
+            result: "银两 -20｜宫人忠诚 +1",
+            next: "close"
+          }
+        ]
+      },
+      close: { type: "text", text: () => `<p>深宫里的适应，并不总是大事。有时候只是一口饭。</p>`, returnToHub: true }
+    }
+  },
+
+  RAND_008: {
+    id: "RAND_008",
+    name: "口音",
+    category: "RANDOM",
+    dateLabel: state => formatGameDate(state.date),
+    startNode: "event",
+    nodes: {
+      event: {
+        type: "choice",
+        text: () => `<p>转过回廊时，你听见两个小宫人在学你说话。</p><p>她们并没有说恶话，只是模仿得夸张，见你出现后，两张脸瞬间白了。</p>`,
+        choices: [
+          {
+            id: "A",
+            label: "只纠正一句，让她们以后别当着人取笑。",
+            apply(state, api) { api.addGlobal("staffLoyalty", 2); },
+            branch: `<p>你没有罚人，只说：“学得不像。下次若真想学，光明正大来问。”</p><p>两个人连连应是，反而比挨罚更不自在。</p>`,
+            result: "宫人忠诚 +2",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "立规矩：好奇可以，拿主子取乐不行。",
+            apply(state, api) { api.addGlobal("palacePrestige", 2); },
+            branch: `<p>你没有发火，只让管事把话传下去：听不懂可以问，觉得新鲜也可以看，但拿人当笑话，是另一回事。</p>`,
+            result: "六宫威望 +2",
+            next: "close"
+          },
+          {
+            id: "C",
+            label: "先不处置，记住是谁最先带头。",
+            apply(state, api) { api.setFlag("FLAG_RAND008_NOTES_MIMIC_LEADER", "ONE_SHOT"); },
+            branch: `<p>你像没听见一样走过去，只把最先开口的那张脸记住。</p><p>不是为了报复。只是宫里的风从哪里起，知道总比不知道好。</p>`,
+            result: "记录一次性观察Flag。",
+            next: "close"
+          }
+        ]
+      },
+      close: { type: "text", text: () => `<p>你离开回廊。身后的声音彻底安静了。</p>`, returnToHub: true }
+    }
+  },
+
+  RAND_010: {
+    id: "RAND_010",
+    name: "送错的礼单",
+    category: "RANDOM",
+    dateLabel: state => formatGameDate(state.date),
+    startNode: "event",
+    nodes: {
+      event: {
+        type: "choice",
+        text: () => `<p>内务处送来一册礼单，宫女翻了两页才发现不是你宫里的。</p><p>上面写着别宫往来的节礼与回礼，没有惊天秘密，却把宫里的人情往来列得清清楚楚。</p>`,
+        choices: [
+          {
+            id: "A",
+            label: "不看内容，立刻让人原样退回。",
+            apply(state, api) { api.setFlag("FLAG_RAND010_RETURNED_UNREAD", "PERMANENT_HISTORY"); },
+            branch: `<p>你合上礼单：“不是我们的东西，就别替别人保管。”</p><p>东西很快退了回去，连折痕都没多一道。</p>`,
+            result: "记录【原样退回】。",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "只记住格式和送礼门道，再让人退回。",
+            apply(state, api) { api.setFlag("FLAG_RAND010_LEARNS_GIFT_CUSTOM", "PERMANENT_HISTORY"); },
+            branch: `<p>你没有去记谁给谁送了什么，只扫了一眼回礼的轻重和节令格式。</p><p>看懂规矩，和窥探别人，是两回事。</p>`,
+            result: "记录【看懂宫中送礼门道】。",
+            next: "close"
+          }
+        ]
+      },
+      close: { type: "text", text: () => `<p>礼单被送回原处。这件小事没掀起波澜，却让你多懂了一点这里的人情尺度。</p>`, returnToHub: true }
+    }
+  },
+
+  PROTO_V04_END: {
+    id: "PROTO_V04_END",
+    name: "三月结束",
+    category: "HUB",
+    dateLabel: "第一年 · 四月上旬",
+    startNode: "end",
+    nodes: {
+      end: {
+        type: "text",
+        text: state => `
+          <p><strong>v0.4 核心循环测试完成。</strong></p>
+          <p>你已经走完三月三旬的自由行动。当前这版重点验证的不是剧情量，而是：行动是否有取舍、时间是否会推进、随机事件是否打断得舒服，以及存档能否保存整个过程。</p>
+          <p>本轮自由行动次数：${state.meta.actionCount || 0}。</p>
+          <p>如果你会产生“再过一旬看看”的感觉，下一版就继续扩充行动收益、随机池、人物偶遇和SCHEME_001《不祥公主》。</p>
+        `,
         finishPrototype: true
       }
     }
@@ -913,7 +1252,7 @@ window.GAME_EVENTS = {
   };
 
   const SAVE_KEY = "heqinPrincessSaveV03";
-  const SAVE_VERSION = 3;
+  const SAVE_VERSION = 4;
 
   let debugVisible = false;
   let state = null;
@@ -958,7 +1297,10 @@ window.GAME_EVENTS = {
       meta: {
         saveVersion: SAVE_VERSION,
         fortuneChecked: false,
-        autoAppliedNodes: {}
+        autoAppliedNodes: {},
+        turnIndex: 0,
+        actionCount: 0,
+        randomCooldowns: {}
       }
     };
   }
@@ -973,7 +1315,19 @@ window.GAME_EVENTS = {
 
   function normalizeLoadedState(raw) {
     if (!raw || typeof raw !== "object") throw new Error("存档格式无效");
-    if (!raw.meta || raw.meta.saveVersion !== SAVE_VERSION) throw new Error("存档版本不兼容");
+    if (!raw.meta) raw.meta = {};
+    const oldVersion = raw.meta.saveVersion || 3;
+    if (oldVersion > SAVE_VERSION) throw new Error("存档版本高于当前程序");
+    raw.meta.saveVersion = SAVE_VERSION;
+    if (raw.meta.turnIndex == null) raw.meta.turnIndex = 0;
+    if (raw.meta.actionCount == null) raw.meta.actionCount = 0;
+    if (!raw.meta.randomCooldowns) raw.meta.randomCooldowns = {};
+    if (!raw.meta.autoAppliedNodes) raw.meta.autoAppliedNodes = {};
+    if (!raw.date) raw.date = { year: 1, month: 1, period: "上旬" };
+    if (!raw.history) raw.history = [];
+    if (!raw.completedEvents) raw.completedEvents = [];
+    if (!raw.flags) raw.flags = {};
+    if (!raw.intel) raw.intel = {};
     if (!raw.currentEventId || !raw.currentNodeId) throw new Error("存档缺少当前位置");
     return raw;
   }
@@ -1033,6 +1387,9 @@ window.GAME_EVENTS = {
     addGlobal(key, delta) {
       state.globals[key] = Math.max(0, (state.globals[key] || 0) + delta);
     },
+    addAttribute(key, delta) {
+      state.attributes[key] = Math.max(0, Math.min(100, (state.attributes[key] || 0) + delta));
+    },
     addRelation(target, axis, delta) {
       if (!state.relations[target]) return;
       state.relations[target][axis] = Math.max(0, Math.min(100, (state.relations[target][axis] || 0) + delta));
@@ -1044,6 +1401,75 @@ window.GAME_EVENTS = {
       if (!state.completedEvents.includes(eventId)) state.completedEvents.push(eventId);
     }
   };
+
+  function formatGameDate(date) {
+    const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+    return `第${cn[date.year] || date.year}年 · ${cn[date.month] || date.month}月${date.period}`;
+  }
+
+  function advancePeriod() {
+    const periods = ["上旬", "中旬", "下旬"];
+    let idx = periods.indexOf(state.date.period);
+    if (idx < 2) {
+      state.date.period = periods[idx + 1];
+    } else {
+      state.date.period = "上旬";
+      state.date.month += 1;
+      if (state.date.month > 12) {
+        state.date.month = 1;
+        state.date.year += 1;
+      }
+    }
+    state.meta.turnIndex = (state.meta.turnIndex || 0) + 1;
+  }
+
+  function pickRandomEvent(bias = 0) {
+    const baseChance = 0.62;
+    if (Math.random() >= Math.max(0.15, Math.min(0.95, baseChance + bias))) return null;
+    const pool = ["RAND_001", "RAND_004", "RAND_007", "RAND_008", "RAND_010"];
+    const eligible = pool.filter(id => {
+      const last = state.meta.randomCooldowns?.[id];
+      return last == null || (state.meta.turnIndex - last) >= 2;
+    });
+    if (!eligible.length) return null;
+    return eligible[Math.floor(Math.random() * eligible.length)];
+  }
+
+  function finishTurn(choice) {
+    state.meta.actionCount = (state.meta.actionCount || 0) + 1;
+    const randomId = pickRandomEvent(choice.randomBias || 0);
+    if (randomId) {
+      state.meta.randomCooldowns[randomId] = state.meta.turnIndex;
+      state.currentEventId = randomId;
+      state.currentNodeId = events[randomId].startNode;
+      autoSave();
+      render();
+      return;
+    }
+    advancePeriod();
+    if ((state.date.year === 1 && state.date.month >= 4) || state.meta.actionCount >= 3) {
+      state.currentEventId = "PROTO_V04_END";
+      state.currentNodeId = "end";
+    } else {
+      state.currentEventId = "FREE_HUB";
+      state.currentNodeId = "action";
+    }
+    autoSave();
+    render();
+  }
+
+  function returnFromRandom() {
+    advancePeriod();
+    if ((state.date.year === 1 && state.date.month >= 4) || state.meta.actionCount >= 3) {
+      state.currentEventId = "PROTO_V04_END";
+      state.currentNodeId = "end";
+    } else {
+      state.currentEventId = "FREE_HUB";
+      state.currentNodeId = "action";
+    }
+    autoSave();
+    render();
+  }
 
   function renderStats() {
     const attrs = Object.entries(state.attributes)
@@ -1116,7 +1542,7 @@ window.GAME_EVENTS = {
 
     $("#eventId").textContent = event.id;
     $("#eventTitle").textContent = event.name;
-    $("#dateLabel").textContent = event.dateLabel;
+    $("#dateLabel").textContent = typeof event.dateLabel === "function" ? event.dateLabel(state) : event.dateLabel;
     $("#resultArea").classList.add("hidden");
     $("#continueArea").classList.add("hidden");
     $("#choiceArea").innerHTML = "";
@@ -1153,10 +1579,15 @@ window.GAME_EVENTS = {
 
     $("#eventText").innerHTML += choice.branch || "";
     $("#choiceArea").innerHTML = "";
-    $("#resultArea").innerHTML = `<p><strong>结算</strong></p><p>${choice.result || "无即时变化"}</p><p class="result-meta">Choice: ${event.id}/${state.currentNodeId}/${choice.id}</p>`;
+    const debugChoice = debugVisible ? `<p class="result-meta">Choice: ${event.id}/${state.currentNodeId}/${choice.id}</p>` : "";
+    $("#resultArea").innerHTML = `<p><strong>结算</strong></p><p>${choice.result || "无即时变化"}</p>${debugChoice}`;
     $("#resultArea").classList.remove("hidden");
     $("#continueArea").classList.remove("hidden");
     $("#continueBtn").onclick = () => {
+      if (choice.consumesTurn) {
+        finishTurn(choice);
+        return;
+      }
       state.currentNodeId = choice.next || node.next;
       autoSave();
       render();
@@ -1172,8 +1603,14 @@ window.GAME_EVENTS = {
     $("#continueArea").classList.remove("hidden");
 
     if (node.finishPrototype) {
-      $("#continueBtn").textContent = "查看 v0.2 原型结果";
+      $("#continueBtn").textContent = "本轮测试完成";
       $("#continueBtn").onclick = showFinish;
+      return;
+    }
+
+    if (node.returnToHub) {
+      $("#continueBtn").textContent = "进入下一旬";
+      $("#continueBtn").onclick = returnFromRandom;
       return;
     }
 
@@ -1204,9 +1641,9 @@ window.GAME_EVENTS = {
   function showFinish() {
     api.completeEvent(state.currentEventId);
     $("#eventText").innerHTML = `
-      <p><strong>v0.2 核心流程已跑通。</strong></p>
-      <p>现在引擎已经验证：历史选择继承、皇帝三轴、太后双轴、三套服装节点、六宫群像、华贵妃好感/威胁双轴，以及“核心回答 + 属性追加节点”。</p>
-      <p>下一阶段可以正式加入：旬制主行动、随机事件池、赵婕妤/李贤妃个人事件、存档和情报卡界面。</p>
+      <p><strong>v0.4 核心循环已跑通。</strong></p>
+      <p>本版已经验证：三旬时间推进、自由养成行动、随机事件插入、主线事件后进入养成阶段，以及浏览器本地存档。</p>
+      <p>下一阶段可以继续加入：SCHEME_001《不祥公主》、人物偶遇池、更多行动收益差异和一月完整循环。</p>
     `;
     $("#choiceArea").innerHTML = "";
     $("#resultArea").classList.add("hidden");
