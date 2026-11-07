@@ -1596,6 +1596,63 @@ window.GAME_EVENTS = {
     }
   },
 
+  BEDCHAMBER_001: {
+    id:"BEDCHAMBER_001",
+    name:"夜召",
+    category:"CHARACTER",
+    dateLabel:state=>{
+      const cn=["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year]||state.date.year}年 · ${cn[state.date.month]||state.date.month}月下旬`;
+    },
+    startNode:"summon",
+    nodes:{
+      summon:{
+        type:"choice",
+        text:state=>`
+          <p>入夜后，御前来人。</p>
+          <p>没有大张旗鼓，也没有让六宫都知道。内侍只按规矩传话：今夜留你。</p>
+          <p>皇帝与你的关系还远不到“情深”二字。可侍寝本来就不只属于情爱——对新建的后宫而言，它同时是礼制、宠爱与政治信号。</p>
+          <p class="result-meta">当前圣宠：${state.relations.emperor.favor}｜本轮采用淡出处理。</p>
+        `,
+        choices:[
+          {
+            id:"A",
+            label:"顺着他的节奏，不刻意谈正事。",
+            apply(state,api){api.addRelation("emperor","favor",4);},
+            branch:`<p>这一夜你没有急着证明自己聪明，也没有把每句话都变成试探。</p><p>灯火熄下去以后，很多事留在帘幕后。第二日清晨，御前的人待你比昨日更熟了一分。</p>`,
+            result:"圣宠 +4｜侍寝记录 +1",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"睡前与他聊几句近来的宫中小事。",
+            apply(state,api){api.addRelation("emperor","trust",3);api.addRelation("emperor","favor",2);},
+            branch:`<p>你只挑不敏感的小事说。皇帝听着，偶尔问一句，没有把这场夜召变成政务问答。</p><p>至少有一刻，你们不是皇帝与和亲公主，只是两个都不太容易真正放松的人。</p>`,
+            result:"帝王信任 +3｜圣宠 +2｜侍寝记录 +1",
+            next:"close"
+          },
+          {
+            id:"C",
+            label:"保持分寸，少说话，先观察他的习惯。",
+            apply(state,api){api.addRelation("emperor","vigilance",-2);api.addAttribute("scheming",1);},
+            branch:`<p>你没有急着靠近，也没有故作冷淡。你只是记住他什么时候会停下说话，什么时候不喜欢旁人追问。</p><p>第二日离开时，你对这个人的日常习惯多知道了一点。</p>`,
+            result:"帝王戒备 -2｜心机 +1｜侍寝记录 +1",
+            next:"close"
+          }
+        ]
+      },
+      close:{
+        type:"text",
+        text:state=>`
+          <p>天亮前，宫人替你重新整理衣发。</p>
+          <p>这次夜召已经记入宫中起居记录。往后圣宠越高，主动被召的概率越高；若连续数月未被召，三月保底会介入。</p>
+          <p>累计侍寝：<strong>${state.meta.bedchamberCount||0}</strong> 次。</p>
+        `,
+        returnAfterBedchamber:true
+      }
+    }
+  },
+
   MONTHLY_001: {
     id: "MONTHLY_001",
     name: "三月结算",
@@ -1605,7 +1662,13 @@ window.GAME_EVENTS = {
     nodes: {
       summary: {
         type: "text",
-        autoApply(state) {
+        autoApply(state,api) {
+          if(!api.hasFlag("FLAG_STIPEND_M03")){
+            const stipend=window.GAME_RULES.stipendFor(state.court?.rank||"妃");
+            api.addGlobal("silver",stipend);
+            state.meta.lastStipendAmount=stipend;
+            api.setFlag("FLAG_STIPEND_M03","PERMANENT_HISTORY");
+          }
           state.date = { year: 1, month: 4, period: "上旬" };
           state.meta.monthActionCount = 0;
           state.meta.actionPoints = state.meta.maxActionPoints;
@@ -1643,7 +1706,7 @@ window.GAME_EVENTS = {
             <p>这一月，你真正能控制的不是宫里的风向，而是自己把哪几项东西练到了什么程度。</p>
             <div class="result-box"><p><strong>本月成长</strong></p>${rows}</div>
             ${unlocked.length ? `<div class="result-box"><p><strong>✨ 本月新解锁</strong></p><p>${unlocked.join("<br>")}</p></div>` : '<p>本月没有跨过新的阶段门槛，但已有数值正在接近下一档。</p>'}
-            <p>宫人忠诚：${state.globals.staffLoyalty}｜六宫威望：${state.globals.palacePrestige}｜银两：${state.globals.silver}</p>
+            <p>当前位份：${state.court?.rank||"妃"}｜本月例银：+${state.meta.lastStipendAmount||0}｜宫人忠诚：${state.globals.staffLoyalty}｜六宫威望：${state.globals.palacePrestige}｜银两：${state.globals.silver}</p>
           `;
         },
         completeEvent: true,
@@ -1987,7 +2050,6 @@ window.GAME_EVENTS = {
         type: "text",
         autoApply(state, api) {
           if (!api.hasFlag("FLAG_MONTHLY002_RESOURCES_APPLIED")) {
-            api.addGlobal("silver",80);
             if (state.globals.staffLoyalty >= 60) api.addGlobal("staffLoyalty",1);
             else if (state.globals.staffLoyalty < 40) api.addGlobal("staffLoyalty",-1);
             if (api.hasFlag("FLAG_ZJY002_LOAN_NO_INTEREST")) {
@@ -2023,7 +2085,7 @@ window.GAME_EVENTS = {
               宫人忠诚：${state.globals.staffLoyalty}<br>
               六宫威望：${state.globals.palacePrestige}</p>
             </div>
-            <p>本月月例与日常份例结算：银两 +80。若你借钱给赵婕妤，她也会在本月结清。</p>
+            <p>本月例银按当前位份结算：银两 +${state.meta.lastStipendAmount||0}。若你借钱给赵婕妤，她也会在本月结清。</p>
           `;
         },
         completeEvent: true,
@@ -2355,8 +2417,19 @@ window.GAME_EVENTS = {
       summary:{
         type:"text",
         autoApply(state,api){
+          if(!api.hasFlag("FLAG_STIPEND_M05")){
+            const stipend=window.GAME_RULES.stipendFor(state.court?.rank||"妃");
+            api.addGlobal("silver",stipend);
+            state.meta.lastStipendAmount=stipend;
+            api.setFlag("FLAG_STIPEND_M05","PERMANENT_HISTORY");
+          }
+          if(!api.hasFlag("FLAG_STIPEND_M04")){
+            const stipend=window.GAME_RULES.stipendFor(state.court?.rank||"妃");
+            api.addGlobal("silver",stipend);
+            state.meta.lastStipendAmount=stipend;
+            api.setFlag("FLAG_STIPEND_M04","PERMANENT_HISTORY");
+          }
           if(!api.hasFlag("FLAG_MONTHLY003_RESOURCES_APPLIED")){
-            api.addGlobal("silver",80);
             api.setFlag("FLAG_MONTHLY003_RESOURCES_APPLIED","PERMANENT_HISTORY");
           }
           state.date={year:1,month:6,period:"上旬"};
@@ -2376,7 +2449,7 @@ window.GAME_EVENTS = {
               慈宁宫外围：${visits.TAIHOU||0}次</p>
               <p>本月最常去：<strong>${names[most[0]]}</strong></p>
             </div>
-            <p>月例结算：银两 +80。</p>
+            <p>本月例银：按当前位份结算，银两 +${state.meta.lastStipendAmount||0}。</p>
             <p>你会慢慢发现，长期偏爱某类地点，本身也会塑造这一周目的信息结构和人物关系。</p>
           `;
         },
@@ -2836,8 +2909,13 @@ window.GAME_EVENTS = {
       summary:{
         type:"text",
         autoApply(state,api){
+          if(!api.hasFlag("FLAG_STIPEND_M06")){
+            const stipend=window.GAME_RULES.stipendFor(state.court?.rank||"妃");
+            api.addGlobal("silver",stipend);
+            state.meta.lastStipendAmount=stipend;
+            api.setFlag("FLAG_STIPEND_M06","PERMANENT_HISTORY");
+          }
           if(!api.hasFlag("FLAG_MONTHLY004_RESOURCES_APPLIED")){
-            api.addGlobal("silver",80);
             api.setFlag("FLAG_MONTHLY004_RESOURCES_APPLIED","PERMANENT_HISTORY");
           }
           state.date={year:1,month:7,period:"上旬"};
@@ -2852,7 +2930,7 @@ window.GAME_EVENTS = {
               <p>尚宫局：${v.SHANGGONG||0}次｜太医院：${v.TAIYI||0}次<br>
               礼佛寺：${v.TEMPLE||0}次｜驿馆：${v.INN||0}次</p>
             </div>
-            <p>月例结算：银两 +80。</p>
+            <p>本月例银：按当前位份结算，银两 +${state.meta.lastStipendAmount||0}。</p>
             <p>宫外信息更杂，也更难验证；但对和亲公主来说，真正能改变故国线和青梅护卫线的东西，本来就不可能只从宫墙里长出来。</p>
           `;
         },
@@ -3363,6 +3441,29 @@ window.GAME_EVENTS = {
     return eligible[Math.floor(Math.random() * eligible.length)];
   }
 
+  function maybeTriggerBedchamber(afterEventId) {
+    const month=state.date.month;
+    if(month < 4) return false;
+    const key=state.date.year+"-"+month;
+    if(state.meta.bedchamberCheckedMonths[key]) return false;
+    state.meta.bedchamberCheckedMonths[key]=true;
+    const dry=state.meta.monthsWithoutBedchamber||0;
+    const favor=state.relations.emperor?.favor||0;
+    const chance=Math.min(0.82,0.16+favor*0.006);
+    const guaranteed=dry>=2;
+    const triggered=guaranteed || Math.random()<chance;
+    if(triggered){
+      state.meta.monthsWithoutBedchamber=0;
+      state.meta.bedchamberCount=(state.meta.bedchamberCount||0)+1;
+      state.meta.pendingAfterBedchamber=afterEventId;
+      state.currentEventId="BEDCHAMBER_001";
+      state.currentNodeId=events.BEDCHAMBER_001.startNode;
+      return true;
+    }
+    state.meta.monthsWithoutBedchamber=dry+1;
+    return false;
+  }
+
   function endPeriod() {
     const finishingMonth = state.date.period === "下旬" && (state.meta.monthActionCount || 0) >= 9;
     state.meta.actionPoints = state.meta.maxActionPoints;
@@ -3374,14 +3475,29 @@ window.GAME_EVENTS = {
       state.currentNodeId = "incident";
     } else if (finishingMonth && state.date.year === 1 && state.date.month === 4) {
       state.meta.actionPoints = 0;
+      if (maybeTriggerBedchamber("MONTHLY_002")) {
+        autoSave();
+        render();
+        return;
+      }
       state.currentEventId = "MONTHLY_002";
       state.currentNodeId = "summary";
     } else if (finishingMonth && state.date.year === 1 && state.date.month === 5) {
       state.meta.actionPoints = 0;
+      if (maybeTriggerBedchamber("MONTHLY_003")) {
+        autoSave();
+        render();
+        return;
+      }
       state.currentEventId = "MONTHLY_003";
       state.currentNodeId = "summary";
     } else if (finishingMonth && state.date.year === 1 && state.date.month === 6) {
       state.meta.actionPoints = 0;
+      if (maybeTriggerBedchamber("MONTHLY_004")) {
+        autoSave();
+        render();
+        return;
+      }
       state.currentEventId = "MONTHLY_004";
       state.currentNodeId = "summary";
     } else {
@@ -3618,6 +3734,19 @@ window.GAME_EVENTS = {
     if (node.finishPrototype) {
       $("#continueBtn").textContent = "本轮测试完成";
       $("#continueBtn").onclick = showFinish;
+      return;
+    }
+
+    if (node.returnAfterBedchamber) {
+      $("#continueBtn").textContent = "天明";
+      $("#continueBtn").onclick = () => {
+        const target=state.meta.pendingAfterBedchamber;
+        state.meta.pendingAfterBedchamber=null;
+        state.currentEventId=target;
+        state.currentNodeId=events[target].startNode;
+        autoSave();
+        render();
+      };
       return;
     }
 
