@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>《和亲公主》Pre-Alpha v0.7</title>
+  <title>《和亲公主》Pre-Alpha v0.8</title>
   <style>
 :root {
   --bg: #f3efe7;
@@ -174,7 +174,7 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
   <main class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">Pre-Alpha · v0.7</p>
+        <p class="eyebrow">Pre-Alpha · v0.8</p>
         <h1>《和亲公主》</h1>
         <p id="dateLabel" class="date-label">第一年 · 一月上旬</p>
       </div>
@@ -252,7 +252,7 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
     </section>
 
     <footer>
-      <p>v0.7验证：四月完整月循环 + 服饰养成 + 人物池扩容 + 正式月度资源结算。</p>
+      <p>v0.8验证：五月宫内地图 + 地点事件权重 + 随机宫廷事件 + 地图月度结算。</p>
     </footer>
   </main>
 
@@ -989,7 +989,7 @@ window.GAME_EVENTS = {
         text: state => `
           <p><strong>本旬行动点：${state.meta.actionPoints} / ${state.meta.maxActionPoints}</strong></p>
           <p>每次养成消耗 1 点行动点。行动点清空后才会进入下一旬；随机事件只是插曲，不额外消耗行动点。</p>
-          <p>你可以专注补短板，也可以把一旬拆成不同方向。Pre-Alpha v0.7 的目标，就是确认“数值养成”本身有没有让人想继续点。</p>
+          <p>你可以专注补短板，也可以把一旬拆成不同方向。Pre-Alpha v0.8 的目标，就是确认“数值养成”本身有没有让人想继续点。</p>
           <p class="result-meta">三月已完成主动养成：${state.meta.actionCount || 0} / 9</p>
         `,
         choices: [
@@ -1998,7 +1998,344 @@ window.GAME_EVENTS = {
           `;
         },
         completeEvent: true,
-        nextEvent: "PROTO_V07_END"
+        nextEvent: "MAY_001"
+      }
+    }
+  },
+
+  MAY_001: {
+    id: "MAY_001",
+    name: "五月·宫里走走",
+    category: "HUB",
+    dateLabel: "第一年 · 五月上旬",
+    startNode: "intro",
+    nodes: {
+      intro: {
+        type: "text",
+        autoApply(state) {
+          state.date = { year: 1, month: 5, period: "上旬" };
+          state.meta.monthActionCount = 0;
+          state.meta.actionPoints = state.meta.maxActionPoints;
+          state.meta.periodActionCounts = {};
+          state.meta.currentLocation = "ROOM";
+          state.meta.locationVisits = { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0 };
+          state.meta.monthStartSnapshot = {
+            attributes: { ...state.attributes },
+            globals: { ...state.globals },
+            relations: JSON.parse(JSON.stringify(state.relations)),
+            wardrobe: JSON.parse(JSON.stringify(state.wardrobe || {}))
+          };
+        },
+        text: () => `
+          <p>五月开始，宫里渐渐热起来。</p>
+          <p>你已经不是刚入宫时只能跟着仪程走的人。每天除了“练什么”，还多了一层选择：<strong>今天去哪里。</strong></p>
+          <p>地点本身不消耗行动点。真正消耗行动点的仍然是养成行为，但不同地点会改变你更容易撞见什么。</p>
+          <p>御花园更容易碰见人；藏书处更容易遇到情报；寝宫偏宫务与生活；慈宁宫外围则更容易撞见太后体系的人和消息。</p>
+        `,
+        completeEvent: true,
+        nextEvent: "MAP_HUB"
+      }
+    }
+  },
+
+  MAP_HUB: {
+    id: "MAP_HUB",
+    name: "宫内地图",
+    category: "HUB",
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
+    startNode: "map",
+    nodes: {
+      map: {
+        type: "choice",
+        text: state => `
+          <p><strong>本旬行动点：${state.meta.actionPoints} / ${state.meta.maxActionPoints}</strong></p>
+          <p>先选今天去哪里。选地点不扣行动点；选定后再决定具体养成。</p>
+          <p class="result-meta">五月地图测试：地点改变随机事件倾向，不保证每次都出事件。</p>
+        `,
+        choices: [
+          {
+            id: "ROOM",
+            label: "寝宫 · 最安稳，也最容易处理自己的宫务",
+            apply(state) {
+              state.meta.currentLocation = "ROOM";
+              state.meta.locationVisits.ROOM = (state.meta.locationVisits.ROOM || 0) + 1;
+            },
+            branch: `<p>你留在自己的宫里。熟悉的人、熟悉的账册、熟悉的屋檐，往往最适合看清那些细小但长期有用的变化。</p>`,
+            result: "前往寝宫｜日常/宫务事件权重上升",
+            nextEvent: "FREE_HUB"
+          },
+          {
+            id: "GARDEN",
+            label: "御花园 · 人多眼杂，也最容易碰见人",
+            apply(state) {
+              state.meta.currentLocation = "GARDEN";
+              state.meta.locationVisits.GARDEN = (state.meta.locationVisits.GARDEN || 0) + 1;
+            },
+            branch: `<p>你带着一名宫女往御花园去。花木只是背景，真正有意思的是今天谁也恰好走到这里。</p>`,
+            result: "前往御花园｜人物偶遇权重上升",
+            nextEvent: "FREE_HUB"
+          },
+          {
+            id: "LIBRARY",
+            label: "藏书处 · 书册、旧档与被人忽略的只言片语",
+            apply(state) {
+              state.meta.currentLocation = "LIBRARY";
+              state.meta.locationVisits.LIBRARY = (state.meta.locationVisits.LIBRARY || 0) + 1;
+            },
+            branch: `<p>你往藏书处去。这里安静得多，也因此更容易留下没人当回事的旧记录。</p>`,
+            result: "前往藏书处｜情报事件权重上升",
+            nextEvent: "FREE_HUB"
+          },
+          {
+            id: "TAIHOU",
+            label: "慈宁宫外围 · 不一定见得到太后，但能看见她身边的人",
+            apply(state) {
+              state.meta.currentLocation = "TAIHOU";
+              state.meta.locationVisits.TAIHOU = (state.meta.locationVisits.TAIHOU || 0) + 1;
+            },
+            branch: `<p>你没有直接求见太后，只沿着慈宁宫外围能走的地方过去。真正的权力从来不只在殿里，也在人来人往的廊下。</p>`,
+            result: "前往慈宁宫外围｜太后体系/情报权重上升",
+            nextEvent: "FREE_HUB"
+          }
+        ]
+      }
+    }
+  },
+
+  RAND_ROOM_001: {
+    id: "RAND_ROOM_001",
+    name: "一床旧锦被",
+    category: "RANDOM",
+    minMonth: 5,
+    locations: ["ROOM"],
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
+    startNode: "event",
+    nodes: {
+      event: {
+        type: "choice",
+        text: () => `
+          <p>宫人整理箱笼时翻出一床故国带来的旧锦被。料子已经不算新，针脚却很细。</p>
+          <p>陪嫁宫女问要不要收起来，换成内务处新送来的。她问得很随意，旁边几个帝国宫人却都安静了一瞬。</p>
+        `,
+        choices: [
+          {
+            id:"A",
+            label:"继续用。旧东西不等于不合规。",
+            apply(state,api){ api.addGlobal("staffLoyalty",2); },
+            branch:`<p>“能用就用。”你说，“又不是摆给别人看的。”</p><p>陪嫁旧人明显松了口气。她们真正担心的，大概不是一床被子。</p>`,
+            result:"宫人忠诚 +2",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"收好留存，日常起居改用宫里新制。",
+            apply(state,api){ api.addGlobal("palacePrestige",1); api.addGlobal("staffLoyalty",1); },
+            branch:`<p>你让人把旧锦被好好收起，又换上新制。留下过去和适应现在，并不冲突。</p>`,
+            result:"六宫威望 +1｜宫人忠诚 +1",
+            next:"close"
+          }
+        ]
+      },
+      close:{type:"text",text:()=>`<p>箱笼重新合上。深宫里，真正让人安心的往往不是大事，而是有人允许一些旧习惯继续存在。</p>`,returnToHub:true}
+    }
+  },
+
+  RAND_GARDEN_001: {
+    id: "RAND_GARDEN_001",
+    name: "借一把伞",
+    category: "RANDOM",
+    minMonth: 5,
+    locations: ["GARDEN"],
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
+    startNode:"event",
+    nodes:{
+      event:{
+        type:"choice",
+        text:()=>`
+          <p>御花园里忽然落了阵雨。你走到廊下时，正见一名低位嫔妃站在另一头，身边连个拿伞的人都没有。</p>
+          <p>她见你过来，先行了礼，眼神却忍不住往你宫女手里的备用伞上看。</p>
+        `,
+        choices:[
+          {
+            id:"A",
+            label:"让宫女把备用伞给她。",
+            apply(state,api){ api.addGlobal("palacePrestige",1); },
+            branch:`<p>你没有多问，只让人把伞递过去。她愣了一下，认真向你道谢。</p><p>这种小事未必换来什么，但宫里的人会记得谁让自己少淋过一场雨。</p>`,
+            result:"六宫威望 +1",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"请她一道走到前面的长廊。",
+            apply(state,api){ api.setFlag("FLAG_GARDEN001_WALKS_WITH_LOW_CONSORT","PERMANENT_HISTORY"); },
+            branch:`<p>你没有把伞递给她，而是往旁边让了让：“一起走吧。”</p><p>一路没谈什么要紧事，反而因此显得更像一次普通相处。</p>`,
+            result:"记录【与低位嫔妃同行】",
+            next:"close"
+          }
+        ]
+      },
+      close:{type:"text",text:()=>`<p>雨来得快，去得也快。御花园恢复了原样，只是有人回宫以后，大概会多提一句你的名字。</p>`,returnToHub:true}
+    }
+  },
+
+  INTEL_LIBRARY_001: {
+    id: "INTEL_LIBRARY_001",
+    name: "旧册里的和亲旧例",
+    category: "INTEL",
+    minMonth: 5,
+    locations: ["LIBRARY"],
+    oncePerRun: true,
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
+    startNode:"event",
+    nodes:{
+      event:{
+        type:"choice",
+        text:()=>`
+          <p>你在一册并不起眼的旧档里看见“和亲”二字。</p>
+          <p>记的是几十年前另一位藩属宗女。正文只有寥寥几行，真正有意思的是旁边后来补上的宫务记录：她入宫第三年后，原本随她来的旧人被分批调离。</p>
+          <p>记录没有解释原因。</p>
+        `,
+        choices:[
+          {
+            id:"A",
+            label:"只记下这个规律，不急着推断原因。",
+            apply(state,api){
+              api.addIntel({id:"INTEL_LIBRARY_OLD_MARRIAGE_RETINUE",name:"旧例中和亲女眷的随行旧人曾被逐步调离",source:"藏书处旧档",status:"TRUE",tags:["和亲","旧例","宫人"]});
+            },
+            branch:`<p>你把页码记在心里。一个旧例不能说明所有事，但至少提醒你：陪嫁旧人并不天然能一直留在身边。</p>`,
+            result:"获得情报【和亲旧人曾被逐步调离】",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"【才智≥55】顺着同年宫务记录查调任去向。",
+            condition:state=>state.attributes.wit>=55,
+            conditionText:state=>`当前才智 ${state.attributes.wit} / 需要 55`,
+            apply(state,api){
+              api.addIntel({id:"INTEL_LIBRARY_OLD_MARRIAGE_RETINUE_DEST",name:"旧例中的随行旧人并非全被驱逐，而是被拆散进不同宫务岗位",source:"同年宫务调任记录",status:"VERIFIED",tags:["和亲","旧例","宫务"]});
+            },
+            branch:`<p>你没有只看那一页，而是把同一年的调任记录一起翻了出来。</p><p>那些人不是突然消失，而是被一点点拆散，调去不同地方。比“赶走”更温和，也更彻底。</p>`,
+            result:"获得验证情报【旧人被拆散进不同宫务岗位】",
+            next:"close"
+          }
+        ]
+      },
+      close:{type:"text",text:()=>`<p>你合上旧册。历史记录得很轻，可真正活过那段日子的人，大概不会觉得轻。</p>`,returnToHub:true}
+    }
+  },
+
+  CHAR_TAIHOU_001: {
+    id: "CHAR_TAIHOU_001",
+    name: "女官手里的名单",
+    category: "CHARACTER",
+    minMonth: 5,
+    locations: ["TAIHOU"],
+    oncePerRun: true,
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
+    startNode:"event",
+    nodes:{
+      event:{
+        type:"choice",
+        text:()=>`
+          <p>慈宁宫外，你遇见太后身边那名常随侍的女官。</p>
+          <p>她手里拿着一张名单，见你走近便自然地折了起来，先向你行礼。</p>
+          <p>“公主今日也是来请安？”她问。</p>
+        `,
+        choices:[
+          {
+            id:"A",
+            label:"只说路过，不追问名单。",
+            apply(state,api){ api.addRelation("taihou","favor",2); },
+            branch:`<p>“只是走到这里。”你笑了笑，没有多看她手里的东西。</p><p>女官神色松了些，又与你说了两句寻常话。</p>`,
+            result:"太后好感 +2",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"顺势问最近慈宁宫是否事务繁多。",
+            apply(state,api){ api.addRelation("taihou","favor",1); api.addIntel({id:"INTEL_TAIHOU_MAY_LIST",name:"慈宁宫近期在核对一批宫务名单",source:"太后女官言辞",status:"PARTIAL",tags:["太后","宫务","名单"]}); },
+            branch:`<p>你没问“名单是什么”，只问最近是不是忙。</p><p>女官笑道：“换季以后，总有些人事要重新核对。”</p><p>她答得很稳，也等于承认那张纸确实与宫务人员有关。</p>`,
+            result:"太后好感 +1｜获得情报【慈宁宫近期在核对宫务名单】",
+            next:"close"
+          }
+        ]
+      },
+      close:{type:"text",text:()=>`<p>你离开慈宁宫外围。真正重要的信息，有时并不在“看见了什么”，而在别人为什么立刻把它折起来。</p>`,returnToHub:true}
+    }
+  },
+
+  MONTHLY_003: {
+    id: "MONTHLY_003",
+    name: "五月结算",
+    category: "HUB",
+    dateLabel: "第一年 · 五月月末",
+    startNode:"summary",
+    nodes:{
+      summary:{
+        type:"text",
+        autoApply(state,api){
+          if(!api.hasFlag("FLAG_MONTHLY003_RESOURCES_APPLIED")){
+            api.addGlobal("silver",80);
+            api.setFlag("FLAG_MONTHLY003_RESOURCES_APPLIED","PERMANENT_HISTORY");
+          }
+          state.date={year:1,month:6,period:"上旬"};
+        },
+        text:state=>{
+          const visits=state.meta.locationVisits||{};
+          const names={ROOM:"寝宫",GARDEN:"御花园",LIBRARY:"藏书处",TAIHOU:"慈宁宫外围"};
+          const most=Object.entries(visits).sort((a,b)=>b[1]-a[1])[0]||["ROOM",0];
+          return `
+            <p><strong>五月结束。</strong></p>
+            <p>这个月你第一次不只决定“练什么”，还决定“去哪里练、去哪里碰运气”。</p>
+            <div class="result-box">
+              <p><strong>地图足迹</strong></p>
+              <p>寝宫：${visits.ROOM||0}次<br>
+              御花园：${visits.GARDEN||0}次<br>
+              藏书处：${visits.LIBRARY||0}次<br>
+              慈宁宫外围：${visits.TAIHOU||0}次</p>
+              <p>本月最常去：<strong>${names[most[0]]}</strong></p>
+            </div>
+            <p>月例结算：银两 +80。</p>
+            <p>你会慢慢发现，长期偏爱某类地点，本身也会塑造这一周目的信息结构和人物关系。</p>
+          `;
+        },
+        completeEvent:true,
+        nextEvent:"PROTO_V08_END"
+      }
+    }
+  },
+
+  PROTO_V08_END: {
+    id:"PROTO_V08_END",
+    name:"六月将启",
+    category:"HUB",
+    dateLabel:"第一年 · 六月上旬",
+    startNode:"end",
+    nodes:{
+      end:{
+        type:"text",
+        text:state=>`
+          <p><strong>v0.8 五月宫内地图循环已跑通。</strong></p>
+          <p>本版验证：地点选择不耗行动点，但会改变随机事件池与事件倾向；养成仍然有确定收益，随机宫廷事件继续作为每个行动后的不确定层。</p>
+          <p>五月主动养成：${state.meta.monthActionCount||0}次｜总养成：${state.meta.actionCount||0}次。</p>
+          <p>下一步可以继续扩宫内地点与专属事件，再逐步开放礼佛、驿馆、围猎等第一批宫外地图。</p>
+        `,
+        finishPrototype:true
       }
     }
   },
@@ -2078,7 +2415,7 @@ window.GAME_EVENTS = {
   };
 
   const SAVE_KEY = "heqinPrincessSaveV03";
-  const SAVE_VERSION = 7;
+  const SAVE_VERSION = 8;
 
   let debugVisible = false;
   let state = null;
@@ -2137,7 +2474,9 @@ window.GAME_EVENTS = {
         randomCooldowns: {},
         randomSeen: {},
         pendingMilestones: [],
-        monthStartSnapshot: null
+        monthStartSnapshot: null,
+        currentLocation: "ROOM",
+        locationVisits: { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0 }
       }
     };
   }
@@ -2167,6 +2506,8 @@ window.GAME_EVENTS = {
     if (!raw.meta.randomCooldowns) raw.meta.randomCooldowns = {};
     if (!raw.meta.randomSeen) raw.meta.randomSeen = {};
     if (!raw.meta.pendingMilestones) raw.meta.pendingMilestones = [];
+    if (!raw.meta.currentLocation) raw.meta.currentLocation = "ROOM";
+    if (!raw.meta.locationVisits) raw.meta.locationVisits = { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0 };
     if (raw.meta.monthStartSnapshot == null && raw.currentEventId === "FREE_HUB") {
       raw.meta.monthStartSnapshot = {
         attributes: { ...raw.attributes },
@@ -2199,6 +2540,16 @@ window.GAME_EVENTS = {
       raw.meta.monthActionCount = 0;
       raw.meta.actionPoints = raw.meta.maxActionPoints || 3;
       raw.meta.monthStartSnapshot = null;
+    }
+    if (raw.currentEventId === "PROTO_V07_END") {
+      raw.currentEventId = "MAY_001";
+      raw.currentNodeId = "intro";
+      raw.date = { year: 1, month: 5, period: "上旬" };
+      raw.meta.monthActionCount = 0;
+      raw.meta.actionPoints = raw.meta.maxActionPoints || 3;
+      raw.meta.monthStartSnapshot = null;
+      raw.meta.currentLocation = "ROOM";
+      raw.meta.locationVisits = { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0 };
     }
     if (!raw.currentEventId || !raw.currentNodeId) throw new Error("存档缺少当前位置");
     return raw;
@@ -2334,23 +2685,38 @@ window.GAME_EVENTS = {
   }
 
   function pickRandomEvent(choice) {
-    const chance = Math.max(0.10, Math.min(0.90, 0.42 + (choice.eventChanceMod || 0)));
+    const locationProfiles = {
+      ROOM:    { DAILY:0.60, CHARACTER:0.15, INTEL:0.25, chance:-0.02 },
+      GARDEN:  { DAILY:0.30, CHARACTER:0.55, INTEL:0.15, chance:0.12 },
+      LIBRARY: { DAILY:0.25, CHARACTER:0.15, INTEL:0.60, chance:0.05 },
+      TAIHOU:  { DAILY:0.20, CHARACTER:0.40, INTEL:0.40, chance:0.08 }
+    };
+    const profile = locationProfiles[state.meta.currentLocation] || locationProfiles.ROOM;
+    const chance = Math.max(0.10, Math.min(0.90, 0.42 + (choice.eventChanceMod || 0) + profile.chance));
     if (Math.random() >= chance) return null;
 
     const pools = {
-      DAILY: ["RAND_001", "RAND_004", "RAND_007", "RAND_008", "RAND_010"],
-      CHARACTER: ["CHAR_ZJY_001", "CHAR_LXF_001", "CHAR_EMP_001", "HGF_002", "CHAR_ZJY_002"],
-      INTEL: ["INTEL_001", "INTEL_002"]
+      DAILY: ["RAND_001", "RAND_004", "RAND_007", "RAND_008", "RAND_010", "RAND_ROOM_001", "RAND_GARDEN_001"],
+      CHARACTER: ["CHAR_ZJY_001", "CHAR_LXF_001", "CHAR_EMP_001", "HGF_002", "CHAR_ZJY_002", "CHAR_TAIHOU_001"],
+      INTEL: ["INTEL_001", "INTEL_002", "INTEL_LIBRARY_001"]
     };
 
-    const poolName = pickEventPool(choice.eventPoolWeights || { DAILY: 1 });
+    const baseWeights = choice.eventPoolWeights || { DAILY:1, CHARACTER:1, INTEL:1 };
+    const mergedWeights = {
+      DAILY: (baseWeights.DAILY || 0.01) * profile.DAILY,
+      CHARACTER: (baseWeights.CHARACTER || 0.01) * profile.CHARACTER,
+      INTEL: (baseWeights.INTEL || 0.01) * profile.INTEL
+    };
+    const poolName = pickEventPool(mergedWeights);
     let pool = pools[poolName] || pools.DAILY;
     let eligible = pool.filter(id => {
       const last = state.meta.randomCooldowns?.[id];
       const onceBlocked = events[id]?.oncePerRun && state.meta.randomSeen?.[id];
       const minMonth = events[id]?.minMonth || 1;
       const monthBlocked = state.date.year === 1 && state.date.month < minMonth;
-      return !onceBlocked && !monthBlocked && (last == null || (state.meta.actionCount - last) >= 3);
+      const locations = events[id]?.locations;
+      const locationBlocked = Array.isArray(locations) && locations.length && !locations.includes(state.meta.currentLocation);
+      return !onceBlocked && !monthBlocked && !locationBlocked && (last == null || (state.meta.actionCount - last) >= 3);
     });
 
     if (!eligible.length) {
@@ -2379,10 +2745,14 @@ window.GAME_EVENTS = {
       state.meta.actionPoints = 0;
       state.currentEventId = "MONTHLY_002";
       state.currentNodeId = "summary";
+    } else if (finishingMonth && state.date.year === 1 && state.date.month === 5) {
+      state.meta.actionPoints = 0;
+      state.currentEventId = "MONTHLY_003";
+      state.currentNodeId = "summary";
     } else {
       advancePeriod();
-      state.currentEventId = "FREE_HUB";
-      state.currentNodeId = "action";
+      state.currentEventId = state.date.month >= 5 ? "MAP_HUB" : "FREE_HUB";
+      state.currentNodeId = state.date.month >= 5 ? "map" : "action";
     }
     autoSave();
     render();
@@ -2410,8 +2780,8 @@ window.GAME_EVENTS = {
       return;
     }
 
-    state.currentEventId = "FREE_HUB";
-    state.currentNodeId = "action";
+    state.currentEventId = state.date.month >= 5 ? "MAP_HUB" : "FREE_HUB";
+    state.currentNodeId = state.date.month >= 5 ? "map" : "action";
     autoSave();
     render();
   }
@@ -2421,8 +2791,8 @@ window.GAME_EVENTS = {
       endPeriod();
       return;
     }
-    state.currentEventId = "FREE_HUB";
-    state.currentNodeId = "action";
+    state.currentEventId = state.date.month >= 5 ? "MAP_HUB" : "FREE_HUB";
+    state.currentNodeId = state.date.month >= 5 ? "map" : "action";
     autoSave();
     render();
   }
@@ -2438,7 +2808,9 @@ window.GAME_EVENTS = {
       .join("");
     const apRow = `<div class="stat-row"><span>本旬行动点</span><span>${state.meta.actionPoints}/${state.meta.maxActionPoints}</span></div>`;
     const styleRow = `<div class="stat-row"><span>当前服饰风格</span><span>${state.wardrobe?.currentStyle || "端庄"}</span></div>`;
-    $("#resourceGrid").innerHTML = apRow + styleRow + globals;
+    const locNames = {ROOM:"寝宫",GARDEN:"御花园",LIBRARY:"藏书处",TAIHOU:"慈宁宫外围"};
+    const locationRow = `<div class="stat-row"><span>当前地点</span><span>${locNames[state.meta.currentLocation] || "寝宫"}</span></div>`;
+    $("#resourceGrid").innerHTML = apRow + locationRow + styleRow + globals;
 
     const emperor = state.relations.emperor;
     $("#emperorGrid").innerHTML = [
@@ -2607,9 +2979,9 @@ window.GAME_EVENTS = {
   function showFinish() {
     api.completeEvent(state.currentEventId);
     $("#eventText").innerHTML = `
-      <p><strong>v0.7 四月完整月循环已跑通。</strong></p>
-      <p>本版已经验证：九点养成、服饰成长、人物偶遇、旧Flag回收、月例资源结算，以及“没有月底宫斗也能成立”的月份节奏。</p>
-      <p>下一阶段可以开始逐步地图化宫内行动，让寝宫、御花园、藏书处、太后宫等地点拥有不同养成与事件权重。</p>
+      <p><strong>v0.8 五月宫内地图循环已跑通。</strong></p>
+      <p>本版已经验证：地点选择不耗行动点，但会改变随机事件池；养成依旧有确定收益，宫廷随机事件继续作为行动后的不确定层。</p>
+      <p>下一阶段可以继续扩充宫内地点，再逐步开放礼佛、驿馆、围猎等第一批宫外地图。</p>
     `;
     $("#choiceArea").innerHTML = "";
     $("#resultArea").classList.add("hidden");
