@@ -998,3 +998,265 @@ window.GAME_EVENTS = {
       }
       state = normalizeLoadedState(JSON.parse(raw));
       setSaveStatus("已读取本机存档。", "success");
+      render();
+    } catch (err) {
+      setSaveStatus(`读取失败：${err.message}`, "warn");
+    }
+  }
+
+  function clearSave() {
+    localStorage.removeItem(SAVE_KEY);
+    setSaveStatus("本机存档已清除。", "success");
+  }
+
+  function autoSave() {
+    saveGame(true);
+  }
+
+  const api = {
+    hasFlag(id) {
+      return Boolean(state.flags[id]?.active);
+    },
+    setFlag(id, persistence = "ACTIVE_STATE") {
+      state.flags[id] = {
+        active: true,
+        persistence,
+        setAt: `${state.currentEventId}:${state.currentNodeId}`
+      };
+    },
+    consumeFlag(id) {
+      if (state.flags[id]) {
+        state.flags[id].active = false;
+        state.flags[id].consumedAt = `${state.currentEventId}:${state.currentNodeId}`;
+      }
+    },
+    addGlobal(key, delta) {
+      state.globals[key] = Math.max(0, (state.globals[key] || 0) + delta);
+    },
+    addRelation(target, axis, delta) {
+      if (!state.relations[target]) return;
+      state.relations[target][axis] = Math.max(0, Math.min(100, (state.relations[target][axis] || 0) + delta));
+    },
+    addIntel(card) {
+      state.intel[card.id] = card;
+    },
+    completeEvent(eventId) {
+      if (!state.completedEvents.includes(eventId)) state.completedEvents.push(eventId);
+    }
+  };
+
+  function renderStats() {
+    const attrs = Object.entries(state.attributes)
+      .map(([k, v]) => `<div class="stat-row"><span>${labels[k]}</span><span>${v}</span></div>`)
+      .join("");
+    $("#attributeGrid").innerHTML = attrs;
+
+    const globals = Object.entries(state.globals)
+      .map(([k, v]) => `<div class="stat-row"><span>${labels[k]}</span><span>${v}</span></div>`)
+      .join("");
+    $("#resourceGrid").innerHTML = globals;
+
+    const emperor = state.relations.emperor;
+    $("#emperorGrid").innerHTML = [
+      ["圣宠", emperor.favor],
+      ["帝王信任", emperor.trust],
+      ...(debugVisible ? [["帝王戒备", emperor.vigilance]] : [])
+    ].map(([k, v]) => `<div class="stat-row"><span>${k}</span><span>${v}</span></div>`).join("");
+
+    const npcRows = [
+      ["太后", state.relations.taihou],
+      ["华贵妃", state.relations.huagui],
+      ["李贤妃", state.relations.lixian],
+      ["赵婕妤", state.relations.zhao],
+      ["青梅护卫", state.relations.guard]
+    ].map(([name, rel]) => {
+      const threat = debugVisible ? ` · 威胁 ${rel.threat}` : "";
+      return `<div class="npc-rel-row"><span>${name}</span><span>好感 ${rel.favor}${threat}</span></div>`;
+    }).join("");
+    $("#npcGrid").innerHTML = npcRows;
+  }
+
+  function renderDebug() {
+    $("#debugPanel").classList.toggle("hidden", !debugVisible);
+    $("#flagsDebug").textContent = JSON.stringify(state.flags, null, 2);
+    $("#historyDebug").textContent = JSON.stringify(state.history, null, 2);
+    $("#completedDebug").textContent = JSON.stringify(state.completedEvents, null, 2);
+    $("#intelDebug").textContent = JSON.stringify(state.intel, null, 2);
+  }
+
+  function recordChoice(eventId, nodeId, choice) {
+    state.history.push({
+      type: "choice",
+      eventId,
+      nodeId,
+      choiceId: choice.id,
+      label: choice.label
+    });
+  }
+
+  function getCurrent() {
+    const event = events[state.currentEventId];
+    return { event, node: event.nodes[state.currentNodeId] };
+  }
+
+  function applyAutoNodeOnce(event, node) {
+    if (!node.autoApply) return;
+    const key = `${event.id}:${state.currentNodeId}`;
+    if (state.meta.autoAppliedNodes[key]) return;
+    state.meta.autoAppliedNodes[key] = true;
+    node.autoApply(state, api);
+  }
+
+  function render() {
+    const { event, node } = getCurrent();
+    if (!event || !node) {
+      showFatal("事件或节点不存在。", { eventId: state.currentEventId, nodeId: state.currentNodeId });
+      return;
+    }
+
+    $("#eventId").textContent = event.id;
+    $("#eventTitle").textContent = event.name;
+    $("#dateLabel").textContent = event.dateLabel;
+    $("#resultArea").classList.add("hidden");
+    $("#continueArea").classList.add("hidden");
+    $("#choiceArea").innerHTML = "";
+    $("#continueBtn").textContent = "继续";
+
+    applyAutoNodeOnce(event, node);
+
+    const text = typeof node.text === "function" ? node.text(state, api) : (node.text || "");
+    $("#eventText").innerHTML = text;
+
+    if (node.type === "choice") renderChoices(event, node);
+    else renderTextNode(event, node);
+
+    renderStats();
+    renderDebug();
+  }
+
+  function renderChoices(event, node) {
+    node.choices.forEach(choice => {
+      const allowed = !choice.condition || choice.condition(state);
+      const btn = document.createElement("button");
+      btn.className = "choice-btn";
+      btn.disabled = !allowed;
+      const cond = choice.conditionText ? choice.conditionText(state) : "";
+      btn.innerHTML = `<span class="choice-main">${choice.label}</span>${cond ? `<span class="choice-condition">${cond}</span>` : ""}`;
+      if (allowed) btn.addEventListener("click", () => choose(event, node, choice));
+      $("#choiceArea").appendChild(btn);
+    });
+  }
+
+  function choose(event, node, choice) {
+    recordChoice(event.id, state.currentNodeId, choice);
+    if (choice.apply) choice.apply(state, api);
+
+    $("#eventText").innerHTML += choice.branch || "";
+    $("#choiceArea").innerHTML = "";
+    $("#resultArea").innerHTML = `<p><strong>结算</strong></p><p>${choice.result || "无即时变化"}</p><p class="result-meta">Choice: ${event.id}/${state.currentNodeId}/${choice.id}</p>`;
+    $("#resultArea").classList.remove("hidden");
+    $("#continueArea").classList.remove("hidden");
+    $("#continueBtn").onclick = () => {
+      state.currentNodeId = choice.next || node.next;
+      autoSave();
+      render();
+    };
+
+    renderStats();
+    renderDebug();
+    autoSave();
+  }
+
+  function renderTextNode(event, node) {
+    if (node.completeEvent) api.completeEvent(event.id);
+    $("#continueArea").classList.remove("hidden");
+
+    if (node.finishPrototype) {
+      $("#continueBtn").textContent = "查看 v0.2 原型结果";
+      $("#continueBtn").onclick = showFinish;
+      return;
+    }
+
+    if (node.nextEvent) {
+      $("#continueBtn").textContent = `进入 ${node.nextEvent}`;
+      $("#continueBtn").onclick = () => {
+        state.currentEventId = node.nextEvent;
+        state.currentNodeId = events[node.nextEvent].startNode;
+        autoSave();
+        render();
+      };
+      return;
+    }
+
+    if (node.next) {
+      $("#continueBtn").textContent = "继续";
+      $("#continueBtn").onclick = () => {
+        state.currentNodeId = node.next;
+        autoSave();
+        render();
+      };
+      return;
+    }
+
+    $("#continueArea").classList.add("hidden");
+  }
+
+  function showFinish() {
+    api.completeEvent(state.currentEventId);
+    $("#eventText").innerHTML = `
+      <p><strong>v0.2 核心流程已跑通。</strong></p>
+      <p>现在引擎已经验证：历史选择继承、皇帝三轴、太后双轴、三套服装节点、六宫群像、华贵妃好感/威胁双轴，以及“核心回答 + 属性追加节点”。</p>
+      <p>下一阶段可以正式加入：旬制主行动、随机事件池、赵婕妤/李贤妃个人事件、存档和情报卡界面。</p>
+    `;
+    $("#choiceArea").innerHTML = "";
+    $("#resultArea").classList.add("hidden");
+    $("#continueArea").classList.add("hidden");
+    renderStats();
+    renderDebug();
+  }
+
+  function showFatal(message, details) {
+    $("#eventTitle").textContent = "原型错误";
+    $("#eventText").innerHTML = `<p>${message}</p><pre>${JSON.stringify(details, null, 2)}</pre>`;
+    $("#choiceArea").innerHTML = "";
+    $("#continueArea").classList.add("hidden");
+  }
+
+  function newGame(debug = false) {
+    state = createState(debug);
+    setSaveStatus(debug ? "已建立高属性测试档。" : "已建立随机新档。", "success");
+    autoSave();
+    render();
+  }
+
+  $("#newRandomBtn").addEventListener("click", () => newGame(false));
+  $("#newDebugBtn").addEventListener("click", () => newGame(true));
+  $("#debugToggleBtn").addEventListener("click", () => {
+    debugVisible = !debugVisible;
+    $("#debugToggleBtn").textContent = debugVisible ? "隐藏调试" : "显示调试";
+    renderStats();
+    renderDebug();
+  });
+  $("#saveBtn").addEventListener("click", () => saveGame(false));
+  $("#loadBtn").addEventListener("click", loadGame);
+  $("#clearSaveBtn").addEventListener("click", clearSave);
+
+  try {
+    const existing = localStorage.getItem(SAVE_KEY);
+    if (existing) {
+      state = normalizeLoadedState(JSON.parse(existing));
+      setSaveStatus("检测到本机存档，已自动读取。", "success");
+      render();
+    } else {
+      newGame(false);
+    }
+  } catch (err) {
+    localStorage.removeItem(SAVE_KEY);
+    setSaveStatus("旧存档不可用，已建立新档。", "warn");
+    newGame(false);
+  }
+})();
+
+</script>
+</body>
+</html>
