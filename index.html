@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>《和亲公主》Pre-Alpha v0.6</title>
+  <title>《和亲公主》Pre-Alpha v0.7</title>
   <style>
 :root {
   --bg: #f3efe7;
@@ -174,7 +174,7 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
   <main class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">Pre-Alpha · v0.6</p>
+        <p class="eyebrow">Pre-Alpha · v0.7</p>
         <h1>《和亲公主》</h1>
         <p id="dateLabel" class="date-label">第一年 · 一月上旬</p>
       </div>
@@ -252,7 +252,7 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
     </section>
 
     <footer>
-      <p>v0.6验证：数值门槛反馈 + 宫斗事件 + 月度结算 + 人物偶遇扩容。</p>
+      <p>v0.7验证：四月完整月循环 + 服饰养成 + 人物池扩容 + 正式月度资源结算。</p>
     </footer>
   </main>
 
@@ -989,7 +989,7 @@ window.GAME_EVENTS = {
         text: state => `
           <p><strong>本旬行动点：${state.meta.actionPoints} / ${state.meta.maxActionPoints}</strong></p>
           <p>每次养成消耗 1 点行动点。行动点清空后才会进入下一旬；随机事件只是插曲，不额外消耗行动点。</p>
-          <p>你可以专注补短板，也可以把一旬拆成不同方向。Pre-Alpha v0.6 的目标，就是确认“数值养成”本身有没有让人想继续点。</p>
+          <p>你可以专注补短板，也可以把一旬拆成不同方向。Pre-Alpha v0.7 的目标，就是确认“数值养成”本身有没有让人想继续点。</p>
           <p class="result-meta">三月已完成主动养成：${state.meta.actionCount || 0} / 9</p>
         `,
         choices: [
@@ -1006,6 +1006,32 @@ window.GAME_EVENTS = {
             branch: `<p>你没有把“好看”当成天生就够用的东西。发式、颜色、妆面和场合都重新试过一遍，最后留下最适合自己的那套。</p>`,
             result: "容貌 +1｜气质 +1",
             eventPoolWeights: { DAILY: 0.45, CHARACTER: 0.35, INTEL: 0.20 }
+          },
+          {
+            id: "DRESS",
+            label: "整衣 · 调整现有衣饰与场合搭配",
+            conditionText: state => {
+              const v = state.globals.wardrobeSkill || 0;
+              const n = [4, 8].find(x => x > v);
+              return n ? `衣饰心得 ${v}｜距下一阶段还差 ${n-v}` : `衣饰心得 ${v}｜已达当前高阶`;
+            },
+            consumesActionPoint: true,
+            apply(state, api) {
+              const before = state.globals.wardrobeSkill || 0;
+              api.addGlobal("wardrobeSkill", 2);
+              const after = state.globals.wardrobeSkill;
+              if (before < 4 && after >= 4) {
+                state.meta.pendingMilestones.push("衣饰心得：懂得按场合搭配");
+                api.setFlag("FLAG_WARDROBE_STAGE_1", "PERMANENT_HISTORY");
+              }
+              if (before < 8 && after >= 8) {
+                state.meta.pendingMilestones.push("衣饰心得：能主动塑造场合印象");
+                api.setFlag("FLAG_WARDROBE_STAGE_2", "PERMANENT_HISTORY");
+              }
+            },
+            branch: `<p>你把现有衣物重新翻了一遍。同一件衣服换配色、发式和佩饰，给人的感觉就完全不同。</p><p>衣柜不一定要先变大，先学会怎么用。</p>`,
+            result: "衣饰心得 +2",
+            eventPoolWeights: { DAILY: 0.40, CHARACTER: 0.40, INTEL: 0.20 }
           },
           {
             id: "READ",
@@ -1552,6 +1578,10 @@ window.GAME_EVENTS = {
         type: "text",
         autoApply(state) {
           state.date = { year: 1, month: 4, period: "上旬" };
+          state.meta.monthActionCount = 0;
+          state.meta.actionPoints = state.meta.maxActionPoints;
+          state.meta.periodActionCounts = {};
+          state.meta.monthStartSnapshot = null;
         },
         text: state => {
           const snap = state.meta.monthStartSnapshot || { attributes: {}, globals: {} };
@@ -1588,7 +1618,403 @@ window.GAME_EVENTS = {
           `;
         },
         completeEvent: true,
-        nextEvent: "PROTO_V06_END"
+        nextEvent: "APRIL_001"
+      }
+    }
+  },
+
+  APRIL_001: {
+    id: "APRIL_001",
+    name: "换季衣料",
+    category: "DAILY",
+    dateLabel: "第一年 · 四月上旬",
+    startNode: "cloth",
+    nodes: {
+      cloth: {
+        type: "choice",
+        autoApply(state) {
+          state.date = { year: 1, month: 4, period: "上旬" };
+          state.meta.monthActionCount = 0;
+          state.meta.actionPoints = state.meta.maxActionPoints;
+          state.meta.periodActionCounts = {};
+          state.meta.monthStartSnapshot = {
+            attributes: { ...state.attributes },
+            globals: { ...state.globals },
+            relations: JSON.parse(JSON.stringify(state.relations)),
+            wardrobe: JSON.parse(JSON.stringify(state.wardrobe || {}))
+          };
+        },
+        text: state => `
+          <p>四月换季，内务处送来新一批衣料，让各宫按自己的习惯裁制春装。</p>
+          <p>你入宫时间不长，衣柜里一半是帝国新制，一半还是从故国带来的旧衣。怎么裁这一套春装，不是什么大事，却会决定你接下来一段时间最常被人看见的样子。</p>
+          <p><strong>你准备往哪个方向改？</strong></p>
+        `,
+        choices: [
+          {
+            id: "A",
+            label: "端庄 · 按帝国宫制裁一套稳妥春装。",
+            apply(state, api) {
+              state.wardrobe.currentStyle = "端庄";
+              api.addGlobal("wardrobeSkill", 1);
+              api.setFlag("FLAG_APRIL_STYLE_FORMAL", "PERMANENT_HISTORY");
+            },
+            branch: `<p>你让人按帝国宫制裁衣，只在领口和袖缘留了一点自己的习惯。稳妥不等于没有主见，只是把主见藏在细节里。</p>`,
+            result: "当前服饰风格：端庄｜衣饰心得 +1",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "融合 · 保留故国纹样，改成帝国更常见的剪裁。",
+            apply(state, api) {
+              state.wardrobe.currentStyle = "异域融合";
+              api.addGlobal("wardrobeSkill", 1);
+              api.setFlag("FLAG_APRIL_STYLE_FUSION", "PERMANENT_HISTORY");
+            },
+            branch: `<p>你保留了故国衣料最有辨识度的纹样，却把整体剪裁改得更适合帝国宫廷。既没有把过去全丢掉，也没有把自己做成一件展示品。</p>`,
+            result: "当前服饰风格：异域融合｜衣饰心得 +1",
+            next: "close"
+          },
+          {
+            id: "C",
+            label: "素雅 · 不追求显眼，只求日常舒服利落。",
+            apply(state, api) {
+              state.wardrobe.currentStyle = "素雅";
+              api.addGlobal("wardrobeSkill", 1);
+              api.setFlag("FLAG_APRIL_STYLE_PLAIN", "PERMANENT_HISTORY");
+            },
+            branch: `<p>你没有把每一次露面都当成战场。春装裁得轻便、素净，方便走动，也方便把注意力放在别的事情上。</p>`,
+            result: "当前服饰风格：素雅｜衣饰心得 +1",
+            next: "close"
+          }
+        ]
+      },
+      close: {
+        type: "text",
+        text: state => `<p>新衣还要几日才能做好。你先记下自己选的方向：<strong>${state.wardrobe.currentStyle}</strong>。</p><p>四月没有必须立刻解决的大事。接下来，还是先把日子过好。</p>`,
+        completeEvent: true,
+        nextEvent: "FREE_HUB"
+      }
+    }
+  },
+
+  CHAR_EMP_001: {
+    id: "CHAR_EMP_001",
+    name: "一句顺口的评价",
+    category: "CHARACTER",
+    oncePerRun: true,
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
+    startNode: "event",
+    nodes: {
+      event: {
+        type: "choice",
+        text: state => {
+          const style = state.wardrobe?.currentStyle || "端庄";
+          const wardrobe = state.globals.wardrobeSkill || 0;
+          return `
+            <p>你从回廊转过去时，恰好遇见皇帝从前殿回来。</p>
+            <p>他身边只跟着两名内侍，见你行礼，脚步便停了一下。</p>
+            <p>“四月新衣已经送到了？”他的目光在你今日的<strong>${style}</strong>打扮上停了半息，语气仍旧随意。</p>
+            ${wardrobe >= 4 ? '<p>他又看了一眼：“看来公主已经很会挑场合了。”</p>' : ''}
+          `;
+        },
+        choices: [
+          {
+            id: "A",
+            label: "只当一句闲话，顺着衣服答。",
+            apply(state, api) { api.addRelation("emperor","favor",3); },
+            branch: `<p>“刚换季，臣妾也在慢慢试。”你没有把一句随口评价接成邀宠的话。</p><p>皇帝点了下头，没再多问，却也没有立刻走。</p>`,
+            result: "圣宠 +3",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "反问一句：陛下觉得哪种更适合臣妾？",
+            apply(state, api) {
+              api.addRelation("emperor","favor",5);
+              api.addRelation("emperor","vigilance",2);
+            },
+            branch: `<p>你把问题轻轻递回去。皇帝笑了一下：“公主这是问朕衣服，还是问朕怎么看你？”</p><p>他没有给标准答案，只把问题重新放回你手里。</p>`,
+            result: "圣宠 +5｜戒备 +2",
+            next: "close"
+          },
+          {
+            id: "C",
+            label: "【衣饰心得≥4】指出：衣服是给场合看的，不是给某一个人看的。",
+            condition: state => (state.globals.wardrobeSkill || 0) >= 4,
+            conditionText: state => `当前衣饰心得 ${state.globals.wardrobeSkill || 0} / 需要 4`,
+            apply(state, api) {
+              api.addRelation("emperor","trust",4);
+              api.setFlag("FLAG_EMP001_CLOTHING_AS_LANGUAGE","PERMANENT_HISTORY");
+            },
+            branch: `<p>“臣妾觉得，衣服先要合场合。”你说，“见太后是一种穿法，家宴是一种穿法，若只为了给某一个人看，反而容易穿错。”</p><p>皇帝看了你片刻：“公主倒把衣服也当成话来说。”</p>`,
+            result: "帝王信任 +4｜记录【衣服也是一种话】",
+            next: "close"
+          }
+        ]
+      },
+      close: {
+        type: "text",
+        text: () => `<p>这场偶遇很短。皇帝继续往前走，你也回了自己的路。</p><p>宫里很多关系，并不是靠大事才往前挪一步。</p>`,
+        returnToHub: true
+      }
+    }
+  },
+
+  HGF_002: {
+    id: "HGF_002",
+    name: "同色宫装",
+    category: "CHARACTER",
+    oncePerRun: true,
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
+    startNode: "event",
+    nodes: {
+      event: {
+        type: "choice",
+        text: state => `
+          <p>一次小宴上，你与华贵妃恰好穿了相近的色系。</p>
+          <p>不是谁模仿谁，也没有人提前知道。可两个人一进席，低位嫔妃的目光还是来回转了几次。</p>
+          <p>华贵妃先看了你一眼，又看了一眼自己袖口，似笑非笑：“这下好了，省得她们私下比较，今日可以当面比。”</p>
+          <p>她说得坦荡，倒显得旁人的窃窃私语小家子气。</p>
+        `,
+        choices: [
+          {
+            id: "A",
+            label: "笑着接一句：那臣妾先认输，省得她们忙。",
+            apply(state, api) { api.addRelation("huagui","favor",4); },
+            branch: `<p>华贵妃挑眉：“你这哪叫认输，分明是先把话堵死。”</p><p>她嘴上不饶人，眼里却有了笑。</p>`,
+            result: "华贵妃好感 +4",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "不比高下，只说同色穿在不同人身上本就不同。",
+            apply(state, api) {
+              api.addRelation("huagui","favor",3);
+              api.addRelation("huagui","threat",-2);
+            },
+            branch: `<p>“同一个颜色，也不是同一件衣服。”你看了看她，“娘娘穿的是娘娘的，臣妾穿的是臣妾的。”</p><p>华贵妃看了你一会儿：“这话倒顺耳。”</p>`,
+            result: "华贵妃好感 +3｜威胁 -2",
+            next: "close"
+          },
+          {
+            id: "C",
+            label: "【衣饰心得≥4】顺势点评两人的搭法，把比较变成审美讨论。",
+            condition: state => (state.globals.wardrobeSkill || 0) >= 4,
+            conditionText: state => `当前衣饰心得 ${state.globals.wardrobeSkill || 0} / 需要 4`,
+            apply(state, api) {
+              api.addRelation("huagui","favor",5);
+              api.setFlag("FLAG_HGF002_STYLE_TALK","PERMANENT_HISTORY");
+            },
+            branch: `<p>你索性把两套衣服的差别一条条说出来：她的更利落，你的更柔和；她用金饰压色，你用素簪留白。</p><p>华贵妃听到最后，低头看了眼自己的袖口：“公主这张嘴，拿来夸衣服倒比拿来试探人好听。”</p>`,
+            result: "华贵妃好感 +5｜记录【审美对谈】",
+            next: "close"
+          }
+        ]
+      },
+      close: {
+        type: "text",
+        text: () => `<p>一场本来很容易变成“争艳”的小事，就这么过去了。</p><p>真正有底气的人，未必需要别人输。</p>`,
+        returnToHub: true
+      }
+    }
+  },
+
+  CHAR_ZJY_002: {
+    id: "CHAR_ZJY_002",
+    name: "借二十两",
+    category: "CHARACTER",
+    oncePerRun: true,
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
+    startNode: "event",
+    nodes: {
+      event: {
+        type: "choice",
+        text: () => `
+          <p>赵婕妤来得理直气壮，坐下第一句话就是：“公主，借我二十两。”</p>
+          <p>你看了她一眼。</p>
+          <p>“别这么看我。”她自己先笑，“我不是没钱，是这两日手头的钱都压在外头。三日后还你，添五两利。”</p>
+          <p>她把借钱说得像在谈一桩极小的买卖。</p>
+        `,
+        choices: [
+          {
+            id: "A",
+            label: "借她二十两，不收利。",
+            condition: state => state.globals.silver >= 20,
+            conditionText: state => `当前银两 ${state.globals.silver} / 需要 20`,
+            apply(state, api) {
+              api.addGlobal("silver",-20);
+              api.addRelation("zhao","favor",5);
+              api.setFlag("FLAG_ZJY002_LOAN_NO_INTEREST","ACTIVE_STATE");
+            },
+            branch: `<p>“二十两可以，五两利就算了。”</p><p>赵婕妤盯着你两息：“你这样做生意，迟早赔。”</p><p>嘴上这么说，她还是把银子收了。</p>`,
+            result: "银两 -20｜赵婕妤好感 +5｜留下借款Flag",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "借，但五两利照收。",
+            condition: state => state.globals.silver >= 20,
+            conditionText: state => `当前银两 ${state.globals.silver} / 需要 20`,
+            apply(state, api) {
+              api.addGlobal("silver",-20);
+              api.addRelation("zhao","favor",7);
+              api.setFlag("FLAG_ZJY002_LOAN_WITH_INTEREST","ACTIVE_STATE");
+            },
+            branch: `<p>“可以。”你说，“五两利，三日后。”</p><p>赵婕妤愣了一下，随即笑得更开心：“好，我就喜欢跟算得清的人来往。”</p>`,
+            result: "银两 -20｜赵婕妤好感 +7｜留下借款Flag",
+            next: "close"
+          },
+          {
+            id: "C",
+            label: "不借，先问她钱压在哪里。",
+            apply(state, api) {
+              api.addRelation("zhao","favor",2);
+              api.addIntel({id:"INTEL_ZJY002_OUTSIDE_MONEY",name:"赵婕妤在宫外有资金往来",source:"赵婕妤借钱时的说法",status:"PARTIAL",tags:["赵婕妤","银两","宫外"]});
+            },
+            branch: `<p>你没接她伸出来的手，只问：“压在外头，是哪里？”</p><p>赵婕妤笑容没变：“公主，二十两买不到这个答案。”</p><p>她没有生气，却也等于承认：宫外确实有她自己的门路。</p>`,
+            result: "赵婕妤好感 +2｜获得情报【赵婕妤在宫外有资金往来】",
+            next: "close"
+          }
+        ]
+      },
+      close: {
+        type: "text",
+        text: () => `<p>赵婕妤来得快，走得也快。你看着她的背影，忽然觉得她不像在后宫过日子，更像在经营一门长期生意。</p>`,
+        returnToHub: true
+      }
+    }
+  },
+
+  INTEL_002: {
+    id: "INTEL_002",
+    name: "谁最关心结果",
+    category: "INTEL",
+    oncePerRun: true,
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
+    startNode: "event",
+    nodes: {
+      event: {
+        type: "choice",
+        text: (state, api) => {
+          const bait = api.hasFlag("FLAG_SCHEME001_BAIT_ROUTE");
+          const phrase = Boolean(state.intel["INTEL_SCHEME001_SHARED_PHRASE"]);
+          if (bait) return `<p>上月你故意放走了那名害怕“不祥”流言的宫人，并让自己宫里的人留意：谁最关心她调去了哪里。</p><p>如今终于有人来回禀——真正主动问过两次的，不是与你有过正面冲突的人，而是一名平日几乎不与你来往的低位妃嫔身边宫女。</p>`;
+          if (phrase) return `<p>上月你已经确认，多处流言用了同一套措辞。四月里，又有人无意间重复了其中一句，而且说法几乎一个字没改。</p><p>同一套词还在继续流动。</p>`;
+          return `<p>宫里的“不祥”流言没有彻底消失，只是声音小了。你偶然发现一个有意思的现象：真正爱问“事情最后怎么处理”的人，和最初说闲话的人并不是同一批。</p>`;
+        },
+        choices: [
+          {
+            id: "A",
+            label: "继续记，不急着点名任何人。",
+            apply(state, api) {
+              api.addIntel({id:"INTEL_APRIL_WHO_WATCHES_OUTCOME",name:"有人持续关注不祥流言的处理结果",source:"四月宫人反馈",status:"PARTIAL",tags:["舆论","观察","后宫"]});
+            },
+            branch: `<p>你把名字记下，又把纸折起来。现在只够说明“有人关心”，还不够说明“有人主使”。</p>`,
+            result: "获得情报【有人持续关注处理结果】",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "让人换一个无关话题试探，看对方是否仍会追问。",
+            condition: state => state.attributes.strategy >= 55,
+            conditionText: state => `当前谋略 ${state.attributes.strategy} / 需要 55`,
+            apply(state, api) {
+              api.addIntel({id:"INTEL_APRIL_WATCHER_CONFIRMED",name:"关注流言结果的人并非单纯好奇",source:"反向试探",status:"VERIFIED",tags:["舆论","试探","后宫"]});
+            },
+            branch: `<p>你让宫人故意把话题带去别处。对方果然绕了一圈，又把问题带回“公主有没有处置那名宫人”。</p><p>好奇一次是偶然，绕回来第二次，就有了方向。</p>`,
+            result: "获得验证情报【关注者并非单纯好奇】",
+            next: "close"
+          }
+        ]
+      },
+      close: { type: "text", text: () => `<p>线索仍然很浅。但浅线索只要不断，就总会牵到更深的地方。</p>`, returnToHub: true }
+    }
+  },
+
+  MONTHLY_002: {
+    id: "MONTHLY_002",
+    name: "四月结算",
+    category: "HUB",
+    dateLabel: "第一年 · 四月月末",
+    startNode: "summary",
+    nodes: {
+      summary: {
+        type: "text",
+        autoApply(state, api) {
+          if (!api.hasFlag("FLAG_MONTHLY002_RESOURCES_APPLIED")) {
+            api.addGlobal("silver",80);
+            if (state.globals.staffLoyalty >= 60) api.addGlobal("staffLoyalty",1);
+            else if (state.globals.staffLoyalty < 40) api.addGlobal("staffLoyalty",-1);
+            if (api.hasFlag("FLAG_ZJY002_LOAN_NO_INTEREST")) {
+              api.addGlobal("silver",20);
+              api.consumeFlag("FLAG_ZJY002_LOAN_NO_INTEREST");
+            }
+            if (api.hasFlag("FLAG_ZJY002_LOAN_WITH_INTEREST")) {
+              api.addGlobal("silver",25);
+              api.consumeFlag("FLAG_ZJY002_LOAN_WITH_INTEREST");
+            }
+            api.setFlag("FLAG_MONTHLY002_RESOURCES_APPLIED","PERMANENT_HISTORY");
+          }
+          state.date = { year:1, month:5, period:"上旬" };
+        },
+        text: state => {
+          const snap = state.meta.monthStartSnapshot || {attributes:{},globals:{},wardrobe:{}};
+          const names = {appearance:"容貌",posture:"体态",temperament:"气质",wit:"才智",scheming:"心机",strategy:"谋略",constitution:"体质",fortune:"福运"};
+          const rows = Object.entries(state.attributes).map(([k,v]) => {
+            const before = snap.attributes?.[k] ?? v;
+            const d=v-before;
+            return `<div class="stat-row"><span>${names[k]}</span><span>${v}${d ? `（${d>0?"+":""}${d}）`:""}</span></div>`;
+          }).join("");
+          const wardrobeBefore = snap.globals?.wardrobeSkill ?? 0;
+          const wardrobeNow = state.globals.wardrobeSkill || 0;
+          return `
+            <p><strong>四月结束。</strong></p>
+            <p>这个月没有大规模宫斗，更多是衣食、人情、偶遇和自己一点点长出来的能力。</p>
+            <div class="result-box"><p><strong>本月成长</strong></p>${rows}</div>
+            <div class="result-box"><p><strong>服饰与资源</strong></p>
+              <p>当前风格：${state.wardrobe.currentStyle}<br>
+              衣饰心得：${wardrobeNow}${wardrobeNow!==wardrobeBefore ? `（+${wardrobeNow-wardrobeBefore}）`:""}<br>
+              银两：${state.globals.silver}<br>
+              宫人忠诚：${state.globals.staffLoyalty}<br>
+              六宫威望：${state.globals.palacePrestige}</p>
+            </div>
+            <p>本月月例与日常份例结算：银两 +80。若你借钱给赵婕妤，她也会在本月结清。</p>
+          `;
+        },
+        completeEvent: true,
+        nextEvent: "PROTO_V07_END"
+      }
+    }
+  },
+
+  PROTO_V07_END: {
+    id: "PROTO_V07_END",
+    name: "五月将启",
+    category: "HUB",
+    dateLabel: "第一年 · 五月上旬",
+    startNode: "end",
+    nodes: {
+      end: {
+        type: "text",
+        text: state => `
+          <p><strong>v0.7 四月完整月循环已跑通。</strong></p>
+          <p>本版验证：一个没有固定宫斗高潮的月份，仍然可以靠九点养成、服饰成长、人物偶遇、情报回收与月底资源结算支撑可玩性。</p>
+          <p>四月主动养成：${state.meta.monthActionCount || 0} 次｜总养成：${state.meta.actionCount || 0} 次。</p>
+          <p>下一阶段可以开始逐步把“菜单行动”地图化：先开放寝宫、御花园、藏书处、太后宫等宫内地点，让同一种养成行为因为地点不同而抽到不同事件。</p>
+        `,
+        finishPrototype: true
       }
     }
   },
@@ -1643,12 +2069,12 @@ window.GAME_EVENTS = {
   const labels = {
     appearance: "容貌", posture: "体态", temperament: "气质", wit: "才智",
     scheming: "心机", strategy: "谋略", constitution: "体质", fortune: "福运",
-    silver: "银两", staffLoyalty: "宫人忠诚", palacePrestige: "六宫威望", courtSupport: "朝堂支持",
+    silver: "银两", staffLoyalty: "宫人忠诚", palacePrestige: "六宫威望", courtSupport: "朝堂支持", wardrobeSkill: "衣饰心得",
     favor: "好感", threat: "威胁", emperorFavor: "圣宠", emperorTrust: "帝王信任", emperorVigilance: "帝王戒备"
   };
 
   const SAVE_KEY = "heqinPrincessSaveV03";
-  const SAVE_VERSION = 6;
+  const SAVE_VERSION = 7;
 
   let debugVisible = false;
   let state = null;
@@ -1674,7 +2100,11 @@ window.GAME_EVENTS = {
         silver: 500,
         staffLoyalty: 50,
         palacePrestige: 0,
-        courtSupport: 0
+        courtSupport: 0,
+        wardrobeSkill: 0
+      },
+      wardrobe: {
+        currentStyle: "端庄"
       },
       relations: {
         emperor: { favor: 0, trust: 0, vigilance: 0 },
@@ -1696,6 +2126,7 @@ window.GAME_EVENTS = {
         autoAppliedNodes: {},
         turnIndex: 0,
         actionCount: 0,
+        monthActionCount: 0,
         maxActionPoints: 3,
         actionPoints: 3,
         periodActionCounts: {},
@@ -1723,6 +2154,9 @@ window.GAME_EVENTS = {
     raw.meta.saveVersion = SAVE_VERSION;
     if (raw.meta.turnIndex == null) raw.meta.turnIndex = 0;
     if (raw.meta.actionCount == null) raw.meta.actionCount = 0;
+    if (raw.meta.monthActionCount == null) {
+      raw.meta.monthActionCount = raw.date?.month === 3 ? Math.min(raw.meta.actionCount || 0, 9) : 0;
+    }
     if (raw.meta.maxActionPoints == null) raw.meta.maxActionPoints = 3;
     if (raw.meta.actionPoints == null) raw.meta.actionPoints = raw.currentEventId === "FREE_HUB" ? 3 : 3;
     if (!raw.meta.periodActionCounts) raw.meta.periodActionCounts = {};
@@ -1742,12 +2176,25 @@ window.GAME_EVENTS = {
     if (!raw.completedEvents) raw.completedEvents = [];
     if (!raw.flags) raw.flags = {};
     if (!raw.intel) raw.intel = {};
+    if (!raw.globals) raw.globals = {};
+    if (raw.globals.wardrobeSkill == null) raw.globals.wardrobeSkill = 0;
+    if (!raw.wardrobe) raw.wardrobe = { currentStyle: "端庄" };
+    if (!raw.wardrobe.currentStyle) raw.wardrobe.currentStyle = "端庄";
     if (raw.currentEventId === "PROTO_V04_END" || raw.currentEventId === "PROTO_V05_END" || raw.currentEventId === "LEGACY_PROTO_V05_END") {
       raw.currentEventId = "SCHEME_001";
       raw.currentNodeId = "incident";
       raw.date = { year: 1, month: 3, period: "下旬" };
       raw.meta.actionCount = Math.max(raw.meta.actionCount || 0, 9);
+      raw.meta.monthActionCount = 9;
       raw.meta.actionPoints = 0;
+    }
+    if (raw.currentEventId === "PROTO_V06_END") {
+      raw.currentEventId = "APRIL_001";
+      raw.currentNodeId = "cloth";
+      raw.date = { year: 1, month: 4, period: "上旬" };
+      raw.meta.monthActionCount = 0;
+      raw.meta.actionPoints = raw.meta.maxActionPoints || 3;
+      raw.meta.monthStartSnapshot = null;
     }
     if (!raw.currentEventId || !raw.currentNodeId) throw new Error("存档缺少当前位置");
     return raw;
@@ -1888,8 +2335,8 @@ window.GAME_EVENTS = {
 
     const pools = {
       DAILY: ["RAND_001", "RAND_004", "RAND_007", "RAND_008", "RAND_010"],
-      CHARACTER: ["CHAR_ZJY_001", "CHAR_LXF_001"],
-      INTEL: ["INTEL_001"]
+      CHARACTER: ["CHAR_ZJY_001", "CHAR_LXF_001", "CHAR_EMP_001", "HGF_002", "CHAR_ZJY_002"],
+      INTEL: ["INTEL_001", "INTEL_002"]
     };
 
     const poolName = pickEventPool(choice.eventPoolWeights || { DAILY: 1 });
@@ -1912,14 +2359,18 @@ window.GAME_EVENTS = {
   }
 
   function endPeriod() {
-    const finishingMarch = state.date.year === 1 && state.date.month === 3 && state.date.period === "下旬" && state.meta.actionCount >= 9;
+    const finishingMonth = state.date.period === "下旬" && (state.meta.monthActionCount || 0) >= 9;
     state.meta.actionPoints = state.meta.maxActionPoints;
     state.meta.periodActionCounts = {};
 
-    if (finishingMarch) {
+    if (finishingMonth && state.date.year === 1 && state.date.month === 3) {
       state.meta.actionPoints = 0;
       state.currentEventId = "SCHEME_001";
       state.currentNodeId = "incident";
+    } else if (finishingMonth && state.date.year === 1 && state.date.month === 4) {
+      state.meta.actionPoints = 0;
+      state.currentEventId = "MONTHLY_002";
+      state.currentNodeId = "summary";
     } else {
       advancePeriod();
       state.currentEventId = "FREE_HUB";
@@ -1931,6 +2382,7 @@ window.GAME_EVENTS = {
 
   function finishAction(choice) {
     state.meta.actionCount = (state.meta.actionCount || 0) + 1;
+    state.meta.monthActionCount = (state.meta.monthActionCount || 0) + 1;
     state.meta.actionPoints = Math.max(0, (state.meta.actionPoints ?? state.meta.maxActionPoints) - 1);
     state.meta.periodActionCounts[choice.id] = (state.meta.periodActionCounts[choice.id] || 0) + 1;
 
@@ -1977,7 +2429,8 @@ window.GAME_EVENTS = {
       .map(([k, v]) => `<div class="stat-row"><span>${labels[k]}</span><span>${v}</span></div>`)
       .join("");
     const apRow = `<div class="stat-row"><span>本旬行动点</span><span>${state.meta.actionPoints}/${state.meta.maxActionPoints}</span></div>`;
-    $("#resourceGrid").innerHTML = apRow + globals;
+    const styleRow = `<div class="stat-row"><span>当前服饰风格</span><span>${state.wardrobe?.currentStyle || "端庄"}</span></div>`;
+    $("#resourceGrid").innerHTML = apRow + styleRow + globals;
 
     const emperor = state.relations.emperor;
     $("#emperorGrid").innerHTML = [
@@ -2145,9 +2598,9 @@ window.GAME_EVENTS = {
   function showFinish() {
     api.completeEvent(state.currentEventId);
     $("#eventText").innerHTML = `
-      <p><strong>v0.6 月度养成闭环已跑通。</strong></p>
-      <p>本版已经验证：数值门槛即时反馈、人物偶遇扩容、SCHEME_001《不祥公主》、月度成长结算，以及旧档继续进入新内容。</p>
-      <p>下一阶段可以开始制作四月完整月循环，并加入服饰养成、更多人物事件和正式月度资源结算。</p>
+      <p><strong>v0.7 四月完整月循环已跑通。</strong></p>
+      <p>本版已经验证：九点养成、服饰成长、人物偶遇、旧Flag回收、月例资源结算，以及“没有月底宫斗也能成立”的月份节奏。</p>
+      <p>下一阶段可以开始逐步地图化宫内行动，让寝宫、御花园、藏书处、太后宫等地点拥有不同养成与事件权重。</p>
     `;
     $("#choiceArea").innerHTML = "";
     $("#resultArea").classList.add("hidden");
