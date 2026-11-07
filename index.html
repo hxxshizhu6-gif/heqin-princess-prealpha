@@ -2062,11 +2062,11 @@ window.GAME_EVENTS = {
 
   function renderChoices(event, node) {
     node.choices.forEach(choice => {
-      const allowed = !choice.condition || choice.condition(state);
+      const allowed = !choice.condition || choice.condition(state, api);
       const btn = document.createElement("button");
       btn.className = "choice-btn";
       btn.disabled = !allowed;
-      const cond = choice.conditionText ? choice.conditionText(state) : "";
+      const cond = choice.conditionText ? choice.conditionText(state, api) : "";
       btn.innerHTML = `<span class="choice-main">${choice.label}</span>${cond ? `<span class="choice-condition">${cond}</span>` : ""}`;
       if (allowed) btn.addEventListener("click", () => choose(event, node, choice));
       $("#choiceArea").appendChild(btn);
