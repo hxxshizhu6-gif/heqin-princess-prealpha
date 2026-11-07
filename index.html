@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>《和亲公主》Pre-Alpha v0.4</title>
+  <title>《和亲公主》Pre-Alpha v0.5</title>
   <style>
 :root {
   --bg: #f3efe7;
@@ -174,7 +174,7 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
   <main class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">Pre-Alpha · v0.4</p>
+        <p class="eyebrow">Pre-Alpha · v0.5</p>
         <h1>《和亲公主》</h1>
         <p id="dateLabel" class="date-label">第一年 · 一月上旬</p>
       </div>
@@ -252,7 +252,7 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
     </section>
 
     <footer>
-      <p>v0.4验证：三旬行动循环 + 随机事件池 + 主线插入 + 自动存档。</p>
+      <p>v0.5验证：每旬3行动点 + 数值养成主循环 + 分层事件池 + 自动存档。</p>
     </footer>
   </main>
 
@@ -967,7 +967,7 @@ window.GAME_EVENTS = {
 
   FREE_HUB: {
     id: "FREE_HUB",
-    name: "旬内行动",
+    name: "旬内养成",
     category: "HUB",
     dateLabel: state => formatGameDate(state.date),
     startNode: "action",
@@ -975,64 +975,76 @@ window.GAME_EVENTS = {
       action: {
         type: "choice",
         text: state => `
-          <p>这一旬没有必须立刻处理的大事。</p>
-          <p>你可以把时间花在自己身上，也可以经营身边的人和事。每次行动消耗一旬，并有概率触发一件随机事件。</p>
-          <p class="result-meta">已完成自由行动：${state.meta.actionCount || 0} / 3（Pre-Alpha v0.4测试范围）</p>
+          <p><strong>本旬行动点：${state.meta.actionPoints} / ${state.meta.maxActionPoints}</strong></p>
+          <p>每次养成消耗 1 点行动点。行动点清空后才会进入下一旬；随机事件只是插曲，不额外消耗行动点。</p>
+          <p>你可以专注补短板，也可以把一旬拆成不同方向。Pre-Alpha v0.5 的目标，就是确认“数值养成”本身有没有让人想继续点。</p>
+          <p class="result-meta">三月已完成主动养成：${state.meta.actionCount || 0} / 9</p>
         `,
         choices: [
           {
+            id: "BEAUTY",
+            label: "妆镜 · 梳妆保养，研究适合自己的衣饰",
+            consumesActionPoint: true,
+            apply(state, api) { api.addAttribute("appearance", 1); api.addAttribute("temperament", 1); },
+            branch: `<p>你没有把“好看”当成天生就够用的东西。发式、颜色、妆面和场合都重新试过一遍，最后留下最适合自己的那套。</p>`,
+            result: "容貌 +1｜气质 +1",
+            eventPoolWeights: { DAILY: 0.45, CHARACTER: 0.35, INTEL: 0.20 }
+          },
+          {
             id: "READ",
-            label: "读书 · 整理故国与帝国典籍",
-            consumesTurn: true,
-            apply(state, api) { api.addAttribute("wit", 3); },
-            branch: `<p>你挑了几卷最实用的书，从制度、地理到礼法，一页页看过去。宫里的日子很长，知道得多一点，总不会是坏事。</p>`,
-            result: "才智 +3",
-            randomBias: 0
+            label: "读书 · 整理典籍与制度",
+            consumesActionPoint: true,
+            apply(state, api) { api.addAttribute("wit", 2); },
+            branch: `<p>你挑了几卷最实用的书，从制度、地理到礼法，一页页看过去。知道得多一点，总不会是坏事。</p>`,
+            result: "才智 +2",
+            eventPoolWeights: { DAILY: 0.40, CHARACTER: 0.20, INTEL: 0.40 }
           },
           {
             id: "ETIQUETTE",
-            label: "习礼 · 熟悉帝国宫廷仪程",
-            consumesTurn: true,
+            label: "习礼 · 熟悉宫廷仪程与体态",
+            consumesActionPoint: true,
             apply(state, api) { api.addAttribute("posture", 2); api.addAttribute("temperament", 1); },
-            branch: `<p>你没有把故国的礼全丢掉，也没有拒绝新的规矩。该学的先学会，什么时候用、什么时候不用，再由你自己决定。</p>`,
+            branch: `<p>你把那些看似繁琐的规矩拆开来学：什么时候要退，什么时候要站，什么时候礼数越足越显得心虚。</p>`,
             result: "体态 +2｜气质 +1",
-            randomBias: 0
-          },
-          {
-            id: "MANAGE",
-            label: "理宫 · 整顿自己宫里的日常事务",
-            consumesTurn: true,
-            apply(state, api) { api.addGlobal("staffLoyalty", 2); api.addGlobal("palacePrestige", 1); },
-            branch: `<p>你把账册、轮值和陪嫁宫人的差事重新理了一遍。事情不大，却能让每个人知道自己该做什么、出了错该找谁。</p>`,
-            result: "宫人忠诚 +2｜六宫威望 +1",
-            randomBias: 0.05
-          },
-          {
-            id: "REST",
-            label: "调养 · 把这一旬留给身体",
-            consumesTurn: true,
-            apply(state, api) { api.addAttribute("constitution", 3); },
-            branch: `<p>你推掉不必要的应酬，按时用膳、早些歇息。深宫里活得久，本身就是一种本事。</p>`,
-            result: "体质 +3",
-            randomBias: -0.1
+            eventPoolWeights: { DAILY: 0.45, CHARACTER: 0.35, INTEL: 0.20 }
           },
           {
             id: "PLAN",
-            label: "复盘 · 整理近来的关系与得失",
-            consumesTurn: true,
+            label: "复盘 · 推演关系与局势",
+            consumesActionPoint: true,
             apply(state, api) { api.addAttribute("scheming", 1); api.addAttribute("strategy", 2); },
             branch: `<p>你把近来见过的人、说过的话、欠下的人情和别人露出的破绽逐一写下，又在最后把纸烧了。</p>`,
             result: "心机 +1｜谋略 +2",
-            randomBias: 0
+            eventPoolWeights: { DAILY: 0.20, CHARACTER: 0.20, INTEL: 0.60 }
+          },
+          {
+            id: "MANAGE",
+            label: "理宫 · 整顿账册、轮值与宫人",
+            consumesActionPoint: true,
+            apply(state, api) { api.addGlobal("staffLoyalty", 2); api.addGlobal("palacePrestige", 1); },
+            branch: `<p>你把账册、轮值和陪嫁宫人的差事重新理了一遍。事情不大，却能让每个人知道自己该做什么、出了错该找谁。</p>`,
+            result: "宫人忠诚 +2｜六宫威望 +1",
+            eventPoolWeights: { DAILY: 0.50, CHARACTER: 0.15, INTEL: 0.35 }
+          },
+          {
+            id: "REST",
+            label: "调养 · 休息、用膳与轻运动",
+            consumesActionPoint: true,
+            apply(state, api) { api.addAttribute("constitution", 2); },
+            branch: `<p>你推掉不必要的应酬，按时用膳、早些歇息，又在院里慢慢走了几圈。深宫里活得久，本身就是一种本事。</p>`,
+            result: "体质 +2",
+            eventPoolWeights: { DAILY: 0.70, CHARACTER: 0.15, INTEL: 0.15 },
+            eventChanceMod: -0.10
           },
           {
             id: "WALK",
             label: "散步 · 去宫里走走，看今天会遇见什么",
-            consumesTurn: true,
+            consumesActionPoint: true,
             apply() {},
-            branch: `<p>你没有给这一旬安排明确目标，只带着一名宫女出门。宫里最有意思的事，往往不在计划里。</p>`,
-            result: "无固定属性收益；随机事件概率提高。",
-            randomBias: 0.25
+            branch: `<p>你没有给这一点行动安排固定收益，只带着一名宫女出门。宫里最有意思的事，往往不在计划里。</p>`,
+            result: "无固定数值收益；人物偶遇概率显著提高。",
+            eventPoolWeights: { DAILY: 0.25, CHARACTER: 0.55, INTEL: 0.20 },
+            eventChanceMod: 0.25
           }
         ]
       }
@@ -1217,8 +1229,101 @@ window.GAME_EVENTS = {
     }
   },
 
-  PROTO_V04_END: {
-    id: "PROTO_V04_END",
+  CHAR_ZJY_001: {
+    id: "CHAR_ZJY_001",
+    name: "赵婕妤来串门",
+    category: "CHARACTER",
+    dateLabel: state => formatGameDate(state.date),
+    startNode: "event",
+    nodes: {
+      event: {
+        type: "choice",
+        text: (state, api) => {
+          const owed = api.hasFlag("FLAG_ZJY_OWED_CLOTHING_COPY");
+          return owed
+            ? `<p>赵婕妤来得很巧，进门第一句话就是：“公主答应我的衣谱，写到哪一页了？”</p><p>她笑得像真来讨债，眼睛却先把你宫里扫了一圈。</p>`
+            : `<p>赵婕妤路过你宫门外，竟真的拐了进来。</p><p>“公主这里清静。”她坐下便笑，“我就是来躲半刻钟闲话，你不会赶我吧？”</p><p>话说得随意，眼睛却很清醒。</p>`;
+        },
+        choices: [
+          {
+            id: "A",
+            label: "陪她闲聊，不急着谈正事。",
+            apply(state, api) { api.addRelation("zhao", "favor", 5); },
+            branch: `<p>你没有追问她为什么来。两个人只聊衣料、吃食和宫里最近哪处花开得最好。</p><p>赵婕妤走时心情不错：“跟聪明人说废话，也比跟蠢人谈正事舒坦。”</p>`,
+            result: "赵婕妤好感 +5",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "顺势问她：宫里最近谁最爱打听你的事？",
+            apply(state, api) {
+              api.addRelation("zhao", "favor", 3);
+              api.addIntel({
+                id: "INTEL_ZJY001_WHO_ASKS_ABOUT_YOU",
+                name: "有人在打听和亲公主近况",
+                source: "赵婕妤随口提点",
+                status: "PARTIAL",
+                tags: ["人物", "舆论", "后宫"]
+              });
+            },
+            branch: `<p>你把话问得像一句闲谈。赵婕妤看了你一眼，也不装没听懂。</p><p>“问的人不少。真值得记的，是那些自己不来问、却总让别人来问的。”她只给了你半句话。</p>`,
+            result: "赵婕妤好感 +3｜获得情报卡【有人在打听你的近况】",
+            next: "close"
+          }
+        ]
+      },
+      close: { type: "text", text: () => `<p>她来得随意，走得也快。你还不能确定她只是来消遣，还是来估价。</p>`, returnToHub: true }
+    }
+  },
+
+  INTEL_001: {
+    id: "INTEL_001",
+    name: "一句没说完的话",
+    category: "INTEL",
+    dateLabel: state => formatGameDate(state.date),
+    startNode: "event",
+    nodes: {
+      event: {
+        type: "choice",
+        text: (state, api) => api.hasFlag("FLAG_MAIN005_TRACE_RUMOR")
+          ? `<p>你让人暗记流言传播路径后，终于出现了第一处重叠。</p><p>不同宫里传出的说法，虽然措辞不同，却都重复了一句相同的话。有人在给流言喂同一套词。</p>`
+          : `<p>你经过回廊时，听见两个宫人提到“不祥”二字。她们见人来便立刻闭嘴。</p><p>这只能说明一件事：那句预言已经不只停在你自己宫外。</p>`,
+        choices: [
+          {
+            id: "A",
+            label: "继续听，不惊动任何人。",
+            apply(state, api) {
+              api.addIntel({
+                id: "INTEL_RUMOR_SPREADS_ACROSS_PALACES",
+                name: "不祥流言已经跨宫传播",
+                source: "宫人私语与传播路径观察",
+                status: "VERIFIED",
+                tags: ["舆论", "预言", "后宫"]
+              });
+              if (api.hasFlag("FLAG_MAIN005_TRACE_RUMOR")) {
+                api.setFlag("FLAG_INTEL001_SHARED_WORDING_FOUND", "PERMANENT_HISTORY");
+              }
+            },
+            branch: `<p>你没有现身，只把听见的词记下。信息还不够抓人，但已经足够证明：这不是一两个人随口闲聊。</p>`,
+            result: "获得情报卡【不祥流言已经跨宫传播】",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "让自己宫里的人先别参与议论，只管记。",
+            apply(state, api) { api.addGlobal("staffLoyalty", 1); },
+            branch: `<p>你没有让人去查，也没有让人反驳，只加了一条规矩：听见可以记，别替任何人往下传。</p>`,
+            result: "宫人忠诚 +1",
+            next: "close"
+          }
+        ]
+      },
+      close: { type: "text", text: () => `<p>真正有价值的情报，往往不是“谁说了什么”，而是谁让很多人开始说一样的话。</p>`, returnToHub: true }
+    }
+  },
+
+  PROTO_V05_END: {
+    id: "PROTO_V05_END",
     name: "三月结束",
     category: "HUB",
     dateLabel: "第一年 · 四月上旬",
@@ -1227,9 +1332,9 @@ window.GAME_EVENTS = {
       end: {
         type: "text",
         text: state => `
-          <p><strong>v0.4 核心循环测试完成。</strong></p>
-          <p>你已经走完三月三旬的自由行动。当前这版重点验证的不是剧情量，而是：行动是否有取舍、时间是否会推进、随机事件是否打断得舒服，以及存档能否保存整个过程。</p>
-          <p>本轮自由行动次数：${state.meta.actionCount || 0}。</p>
+          <p><strong>v0.5 数值养成循环测试完成。</strong></p>
+          <p>你已经走完三月三旬、共九点主动养成。当前这版重点验证：有限行动点是否带来取舍、数值增长是否有爽感、随机事件是否只做插曲而不抢走养成回合。</p>
+          <p>本轮主动养成次数：${state.meta.actionCount || 0}。</p>
           <p>如果你会产生“再过一旬看看”的感觉，下一版就继续扩充行动收益、随机池、人物偶遇和SCHEME_001《不祥公主》。</p>
         `,
         finishPrototype: true
@@ -1252,7 +1357,7 @@ window.GAME_EVENTS = {
   };
 
   const SAVE_KEY = "heqinPrincessSaveV03";
-  const SAVE_VERSION = 4;
+  const SAVE_VERSION = 5;
 
   let debugVisible = false;
   let state = null;
@@ -1300,6 +1405,9 @@ window.GAME_EVENTS = {
         autoAppliedNodes: {},
         turnIndex: 0,
         actionCount: 0,
+        maxActionPoints: 3,
+        actionPoints: 3,
+        periodActionCounts: {},
         randomCooldowns: {}
       }
     };
@@ -1321,6 +1429,9 @@ window.GAME_EVENTS = {
     raw.meta.saveVersion = SAVE_VERSION;
     if (raw.meta.turnIndex == null) raw.meta.turnIndex = 0;
     if (raw.meta.actionCount == null) raw.meta.actionCount = 0;
+    if (raw.meta.maxActionPoints == null) raw.meta.maxActionPoints = 3;
+    if (raw.meta.actionPoints == null) raw.meta.actionPoints = raw.currentEventId === "FREE_HUB" ? 3 : 3;
+    if (!raw.meta.periodActionCounts) raw.meta.periodActionCounts = {};
     if (!raw.meta.randomCooldowns) raw.meta.randomCooldowns = {};
     if (!raw.meta.autoAppliedNodes) raw.meta.autoAppliedNodes = {};
     if (!raw.date) raw.date = { year: 1, month: 1, period: "上旬" };
@@ -1423,32 +1534,57 @@ window.GAME_EVENTS = {
     state.meta.turnIndex = (state.meta.turnIndex || 0) + 1;
   }
 
-  function pickRandomEvent(bias = 0) {
-    const baseChance = 0.62;
-    if (Math.random() >= Math.max(0.15, Math.min(0.95, baseChance + bias))) return null;
-    const pool = ["RAND_001", "RAND_004", "RAND_007", "RAND_008", "RAND_010"];
-    const eligible = pool.filter(id => {
+  function weightedPick(items) {
+    const total = items.reduce((sum, item) => sum + item.weight, 0);
+    let roll = Math.random() * total;
+    for (const item of items) {
+      roll -= item.weight;
+      if (roll <= 0) return item.value;
+    }
+    return items[items.length - 1]?.value || null;
+  }
+
+  function pickEventPool(weights = {}) {
+    const entries = Object.entries(weights)
+      .filter(([, weight]) => weight > 0)
+      .map(([value, weight]) => ({ value, weight }));
+    return entries.length ? weightedPick(entries) : "DAILY";
+  }
+
+  function pickRandomEvent(choice) {
+    const chance = Math.max(0.10, Math.min(0.90, 0.42 + (choice.eventChanceMod || 0)));
+    if (Math.random() >= chance) return null;
+
+    const pools = {
+      DAILY: ["RAND_001", "RAND_004", "RAND_007", "RAND_008", "RAND_010"],
+      CHARACTER: ["CHAR_ZJY_001"],
+      INTEL: ["INTEL_001"]
+    };
+
+    const poolName = pickEventPool(choice.eventPoolWeights || { DAILY: 1 });
+    let pool = pools[poolName] || pools.DAILY;
+    let eligible = pool.filter(id => {
       const last = state.meta.randomCooldowns?.[id];
-      return last == null || (state.meta.turnIndex - last) >= 2;
+      return last == null || (state.meta.actionCount - last) >= 3;
     });
+
+    if (!eligible.length) {
+      eligible = pools.DAILY.filter(id => {
+        const last = state.meta.randomCooldowns?.[id];
+        return last == null || (state.meta.actionCount - last) >= 3;
+      });
+    }
     if (!eligible.length) return null;
     return eligible[Math.floor(Math.random() * eligible.length)];
   }
 
-  function finishTurn(choice) {
-    state.meta.actionCount = (state.meta.actionCount || 0) + 1;
-    const randomId = pickRandomEvent(choice.randomBias || 0);
-    if (randomId) {
-      state.meta.randomCooldowns[randomId] = state.meta.turnIndex;
-      state.currentEventId = randomId;
-      state.currentNodeId = events[randomId].startNode;
-      autoSave();
-      render();
-      return;
-    }
+  function endPeriod() {
     advancePeriod();
-    if ((state.date.year === 1 && state.date.month >= 4) || state.meta.actionCount >= 3) {
-      state.currentEventId = "PROTO_V04_END";
+    state.meta.actionPoints = state.meta.maxActionPoints;
+    state.meta.periodActionCounts = {};
+
+    if ((state.date.year === 1 && state.date.month >= 4) || state.meta.actionCount >= 9) {
+      state.currentEventId = "PROTO_V05_END";
       state.currentNodeId = "end";
     } else {
       state.currentEventId = "FREE_HUB";
@@ -1458,15 +1594,39 @@ window.GAME_EVENTS = {
     render();
   }
 
-  function returnFromRandom() {
-    advancePeriod();
-    if ((state.date.year === 1 && state.date.month >= 4) || state.meta.actionCount >= 3) {
-      state.currentEventId = "PROTO_V04_END";
-      state.currentNodeId = "end";
-    } else {
-      state.currentEventId = "FREE_HUB";
-      state.currentNodeId = "action";
+  function finishAction(choice) {
+    state.meta.actionCount = (state.meta.actionCount || 0) + 1;
+    state.meta.actionPoints = Math.max(0, (state.meta.actionPoints ?? state.meta.maxActionPoints) - 1);
+    state.meta.periodActionCounts[choice.id] = (state.meta.periodActionCounts[choice.id] || 0) + 1;
+
+    const randomId = pickRandomEvent(choice);
+    if (randomId) {
+      state.meta.randomCooldowns[randomId] = state.meta.actionCount;
+      state.currentEventId = randomId;
+      state.currentNodeId = events[randomId].startNode;
+      autoSave();
+      render();
+      return;
     }
+
+    if (state.meta.actionPoints <= 0) {
+      endPeriod();
+      return;
+    }
+
+    state.currentEventId = "FREE_HUB";
+    state.currentNodeId = "action";
+    autoSave();
+    render();
+  }
+
+  function returnFromRandom() {
+    if (state.meta.actionPoints <= 0) {
+      endPeriod();
+      return;
+    }
+    state.currentEventId = "FREE_HUB";
+    state.currentNodeId = "action";
     autoSave();
     render();
   }
@@ -1480,7 +1640,8 @@ window.GAME_EVENTS = {
     const globals = Object.entries(state.globals)
       .map(([k, v]) => `<div class="stat-row"><span>${labels[k]}</span><span>${v}</span></div>`)
       .join("");
-    $("#resourceGrid").innerHTML = globals;
+    const apRow = `<div class="stat-row"><span>本旬行动点</span><span>${state.meta.actionPoints}/${state.meta.maxActionPoints}</span></div>`;
+    $("#resourceGrid").innerHTML = apRow + globals;
 
     const emperor = state.relations.emperor;
     $("#emperorGrid").innerHTML = [
@@ -1584,8 +1745,8 @@ window.GAME_EVENTS = {
     $("#resultArea").classList.remove("hidden");
     $("#continueArea").classList.remove("hidden");
     $("#continueBtn").onclick = () => {
-      if (choice.consumesTurn) {
-        finishTurn(choice);
+      if (choice.consumesActionPoint) {
+        finishAction(choice);
         return;
       }
       state.currentNodeId = choice.next || node.next;
@@ -1641,9 +1802,9 @@ window.GAME_EVENTS = {
   function showFinish() {
     api.completeEvent(state.currentEventId);
     $("#eventText").innerHTML = `
-      <p><strong>v0.4 核心循环已跑通。</strong></p>
-      <p>本版已经验证：三旬时间推进、自由养成行动、随机事件插入、主线事件后进入养成阶段，以及浏览器本地存档。</p>
-      <p>下一阶段可以继续加入：SCHEME_001《不祥公主》、人物偶遇池、更多行动收益差异和一月完整循环。</p>
+      <p><strong>v0.5 数值养成循环已跑通。</strong></p>
+      <p>本版已经验证：每旬3行动点、三旬共9次主动养成、随机事件不额外吞行动点、行动类型影响事件池权重，以及浏览器本地存档。</p>
+      <p>下一阶段可以继续加入：SCHEME_001《不祥公主》、更多人物偶遇、月度结算、服饰养成与长期数值成长曲线。</p>
     `;
     $("#choiceArea").innerHTML = "";
     $("#resultArea").classList.add("hidden");
