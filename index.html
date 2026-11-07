@@ -2473,6 +2473,7 @@ window.GAME_EVENTS = {
         choices:[
           {
             id:"TEMPLE_WALK",
+            hideWhenUnavailable:true,
             label:"寺外走走 · 看香客、街面和来往女眷",
             condition:state=>state.meta.currentLocation==="TEMPLE",
             consumesActionPoint:true,
@@ -2484,6 +2485,7 @@ window.GAME_EVENTS = {
           },
           {
             id:"TEMPLE_QUIET",
+            hideWhenUnavailable:true,
             label:"静坐片刻 · 离开宫中人声，整理自己的思路",
             condition:state=>state.meta.currentLocation==="TEMPLE",
             consumesActionPoint:true,
@@ -2495,6 +2497,7 @@ window.GAME_EVENTS = {
           },
           {
             id:"INN_NEWS",
+            hideWhenUnavailable:true,
             label:"看公开文书 · 翻使团告示与往来名册",
             condition:state=>state.meta.currentLocation==="INN",
             consumesActionPoint:true,
@@ -2506,6 +2509,7 @@ window.GAME_EVENTS = {
           },
           {
             id:"INN_SOCIAL",
+            hideWhenUnavailable:true,
             label:"与故国随员寒暄 · 不问机密，只听近况",
             condition:state=>state.meta.currentLocation==="INN",
             consumesActionPoint:true,
@@ -3465,6 +3469,7 @@ window.GAME_EVENTS = {
   function renderChoices(event, node) {
     node.choices.forEach(choice => {
       const allowed = !choice.condition || choice.condition(state, api);
+      if (!allowed && choice.hideWhenUnavailable) return;
       const btn = document.createElement("button");
       btn.className = "choice-btn";
       btn.disabled = !allowed;
