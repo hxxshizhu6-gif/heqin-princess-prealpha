@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>《和亲公主》Pre-Alpha v0.5</title>
+  <title>《和亲公主》Pre-Alpha v0.6</title>
   <style>
 :root {
   --bg: #f3efe7;
@@ -174,7 +174,7 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
   <main class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">Pre-Alpha · v0.5</p>
+        <p class="eyebrow">Pre-Alpha · v0.6</p>
         <h1>《和亲公主》</h1>
         <p id="dateLabel" class="date-label">第一年 · 一月上旬</p>
       </div>
@@ -252,7 +252,7 @@ footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px
     </section>
 
     <footer>
-      <p>v0.5验证：每旬3行动点 + 数值养成主循环 + 分层事件池 + 自动存档。</p>
+      <p>v0.6验证：数值门槛反馈 + 宫斗事件 + 月度结算 + 人物偶遇扩容。</p>
     </footer>
   </main>
 
@@ -977,16 +977,30 @@ window.GAME_EVENTS = {
     nodes: {
       action: {
         type: "choice",
+        autoApply(state) {
+          if (!state.meta.monthStartSnapshot) {
+            state.meta.monthStartSnapshot = {
+              attributes: { ...state.attributes },
+              globals: { ...state.globals },
+              relations: JSON.parse(JSON.stringify(state.relations))
+            };
+          }
+        },
         text: state => `
           <p><strong>本旬行动点：${state.meta.actionPoints} / ${state.meta.maxActionPoints}</strong></p>
           <p>每次养成消耗 1 点行动点。行动点清空后才会进入下一旬；随机事件只是插曲，不额外消耗行动点。</p>
-          <p>你可以专注补短板，也可以把一旬拆成不同方向。Pre-Alpha v0.5 的目标，就是确认“数值养成”本身有没有让人想继续点。</p>
+          <p>你可以专注补短板，也可以把一旬拆成不同方向。Pre-Alpha v0.6 的目标，就是确认“数值养成”本身有没有让人想继续点。</p>
           <p class="result-meta">三月已完成主动养成：${state.meta.actionCount || 0} / 9</p>
         `,
         choices: [
           {
             id: "BEAUTY",
             label: "妆镜 · 梳妆保养，研究适合自己的衣饰",
+            conditionText: state => {
+              const v = state.attributes.appearance;
+              const n = [75, 85].find(x => x > v);
+              return n ? `当前容貌 ${v}｜距阶段${n}还差 ${n-v}` : `当前容貌 ${v}｜已达高阶`;
+            },
             consumesActionPoint: true,
             apply(state, api) { api.addAttribute("appearance", 1); api.addAttribute("temperament", 1); },
             branch: `<p>你没有把“好看”当成天生就够用的东西。发式、颜色、妆面和场合都重新试过一遍，最后留下最适合自己的那套。</p>`,
@@ -996,6 +1010,11 @@ window.GAME_EVENTS = {
           {
             id: "READ",
             label: "读书 · 整理典籍与制度",
+            conditionText: state => {
+              const v = state.attributes.wit;
+              const n = [55, 70, 85].find(x => x > v);
+              return n ? `当前才智 ${v}｜距阶段${n}还差 ${n-v}` : `当前才智 ${v}｜已达高阶`;
+            },
             consumesActionPoint: true,
             apply(state, api) { api.addAttribute("wit", 2); },
             branch: `<p>你挑了几卷最实用的书，从制度、地理到礼法，一页页看过去。知道得多一点，总不会是坏事。</p>`,
@@ -1005,6 +1024,10 @@ window.GAME_EVENTS = {
           {
             id: "ETIQUETTE",
             label: "习礼 · 熟悉宫廷仪程与体态",
+            conditionText: state => {
+              const a = state.attributes.posture, b = state.attributes.temperament;
+              return `体态 ${a}｜气质 ${b}`;
+            },
             consumesActionPoint: true,
             apply(state, api) { api.addAttribute("posture", 2); api.addAttribute("temperament", 1); },
             branch: `<p>你把那些看似繁琐的规矩拆开来学：什么时候要退，什么时候要站，什么时候礼数越足越显得心虚。</p>`,
@@ -1014,6 +1037,11 @@ window.GAME_EVENTS = {
           {
             id: "PLAN",
             label: "复盘 · 推演关系与局势",
+            conditionText: state => {
+              const s = state.attributes.scheming, p = state.attributes.strategy;
+              const n = [55, 70, 85].find(x => x > Math.max(s,p));
+              return n ? `心机 ${s}｜谋略 ${p}｜下一阶段 ${n}` : `心机 ${s}｜谋略 ${p}｜已达高阶`;
+            },
             consumesActionPoint: true,
             apply(state, api) { api.addAttribute("scheming", 1); api.addAttribute("strategy", 2); },
             branch: `<p>你把近来见过的人、说过的话、欠下的人情和别人露出的破绽逐一写下，又在最后把纸烧了。</p>`,
@@ -1023,6 +1051,7 @@ window.GAME_EVENTS = {
           {
             id: "MANAGE",
             label: "理宫 · 整顿账册、轮值与宫人",
+            conditionText: state => `宫人忠诚 ${state.globals.staffLoyalty}｜六宫威望 ${state.globals.palacePrestige}`,
             consumesActionPoint: true,
             apply(state, api) { api.addGlobal("staffLoyalty", 2); api.addGlobal("palacePrestige", 1); },
             branch: `<p>你把账册、轮值和陪嫁宫人的差事重新理了一遍。事情不大，却能让每个人知道自己该做什么、出了错该找谁。</p>`,
@@ -1032,6 +1061,11 @@ window.GAME_EVENTS = {
           {
             id: "REST",
             label: "调养 · 休息、用膳与轻运动",
+            conditionText: state => {
+              const v = state.attributes.constitution;
+              const n = [55, 70, 85].find(x => x > v);
+              return n ? `当前体质 ${v}｜距阶段${n}还差 ${n-v}` : `当前体质 ${v}｜已达高阶`;
+            },
             consumesActionPoint: true,
             apply(state, api) { api.addAttribute("constitution", 2); },
             branch: `<p>你推掉不必要的应酬，按时用膳、早些歇息，又在院里慢慢走了几圈。深宫里活得久，本身就是一种本事。</p>`,
@@ -1251,6 +1285,7 @@ window.GAME_EVENTS = {
     id: "CHAR_ZJY_001",
     name: "赵婕妤来串门",
     category: "CHARACTER",
+    oncePerRun: true,
     dateLabel: state => {
       const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
       return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
@@ -1297,10 +1332,63 @@ window.GAME_EVENTS = {
     }
   },
 
+  CHAR_LXF_001: {
+    id: "CHAR_LXF_001",
+    name: "一杯温茶",
+    category: "CHARACTER",
+    oncePerRun: true,
+    dateLabel: state => {
+      const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
+    },
+    startNode: "event",
+    nodes: {
+      event: {
+        type: "choice",
+        text: () => `
+          <p>从太后宫里出来时，风有些凉。你在廊下停了片刻，李贤妃恰好从另一边过来。</p>
+          <p>她没有问你刚见了谁，只让宫女把手里的暖茶递过来：“公主初来，气候未必习惯。若不嫌弃，先暖暖手。”</p>
+          <p>这份体贴恰到好处——不热络得让人警惕，也不冷淡得失礼。</p>
+        `,
+        choices: [
+          {
+            id: "A",
+            label: "接下茶，道一声谢，不多想。",
+            apply(state, api) {
+              api.addRelation("lixian", "favor", 5);
+              api.setFlag("FLAG_CHAR_LXF001_ACCEPTED_TEA", "PERMANENT_HISTORY");
+            },
+            branch: `<p>你接过茶盏。李贤妃只笑了笑，真的没有借机问任何事。</p><p>至少这一刻，她只是做了一件让人舒服的事。</p>`,
+            result: "李贤妃好感 +5",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "接茶，但顺便问她是否也不习惯宫里的日子。",
+            apply(state, api) {
+              api.addRelation("lixian", "favor", 5);
+              api.addRelation("lixian", "threat", 3);
+              api.setFlag("FLAG_CHAR_LXF001_GENTLE_PROBE", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“贤妃娘娘这样熟练，像是从不需要适应。”你笑着说。</p><p>她低头理了理袖口：“哪有人真的不需要适应。只是有些人适应得快些。”</p><p>她说完便把话题带开，仍旧温柔。</p>`,
+            result: "李贤妃好感 +5｜李贤妃威胁 +3",
+            next: "close"
+          }
+        ]
+      },
+      close: {
+        type: "text",
+        text: () => `<p>李贤妃先行离开。你低头看了一眼手里的茶，温度正好。</p>`,
+        returnToHub: true
+      }
+    }
+  },
+
   INTEL_001: {
     id: "INTEL_001",
     name: "一句没说完的话",
     category: "INTEL",
+    oncePerRun: true,
     dateLabel: state => {
       const cn = ["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
       return `第${cn[state.date.year] || state.date.year}年 · ${cn[state.date.month] || state.date.month}月${state.date.period}`;
@@ -1346,8 +1434,187 @@ window.GAME_EVENTS = {
     }
   },
 
-  PROTO_V05_END: {
-    id: "PROTO_V05_END",
+  SCHEME_001: {
+    id: "SCHEME_001",
+    name: "不祥公主",
+    category: "SCHEME",
+    dateLabel: "第一年 · 三月下旬",
+    startNode: "incident",
+    nodes: {
+      incident: {
+        type: "choice",
+        text: (state, api) => {
+          const traced = api.hasFlag("FLAG_MAIN005_TRACE_RUMOR");
+          const verified = Boolean(state.intel["INTEL_RUMOR_SPREADS_ACROSS_PALACES"]);
+          return `
+            <p>三月最后一旬，你宫里原定要补进两名宫人。临到交接，其中一人却忽然跪下，请求留在原处，宁愿受罚也不肯来你这里。</p>
+            <p>她起初只说“家中有事”，被问急了才红着眼承认：家里听说你身负“不祥”之名，托人捎话，让她无论如何不要靠近。</p>
+            <p>事情本来只在宫务交接处，很快却传到了几宫。有人觉得荒唐，也有人开始看你会怎么处置。</p>
+            ${traced || verified ? '<p><strong>你已经知道：这句流言并非自然散开，至少有人在反复喂同一套说法。</strong></p>' : ''}
+            <p>现在的问题已经不是一句闲话——如果“怕你”可以成为拒绝宫务调配的理由，它就会变成先例。</p>
+          `;
+        },
+        choices: [
+          {
+            id: "A",
+            label: "按宫规处理，不争吉凶，只争制度。",
+            apply(state, api) {
+              api.addGlobal("palacePrestige", 4);
+              api.setFlag("FLAG_SCHEME001_RULES_FIRST", "PERMANENT_HISTORY");
+            },
+            branch: `<p>你没有问她信不信预言，只让管事把调配文书拿来。</p><p>“若家中有病、有丧、有实情，按宫规申请。若只是听了闲话便能拒绝差事，那以后人人都可以拿一句传闻挑主子。”</p><p>你没有罚她重罪，只让尚宫按制度重新处置。旁人想看你恼羞成怒，最后只看见一套规矩。</p>`,
+            result: "六宫威望 +4",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "【气质≥60】当众压住场面，不替预言自证。",
+            condition: state => state.attributes.temperament >= 60,
+            conditionText: state => `当前气质 ${state.attributes.temperament} / 需要 60`,
+            apply(state, api) {
+              api.addGlobal("palacePrestige", 6);
+              api.setFlag("FLAG_SCHEME001_TEMPERAMENT", "PERMANENT_HISTORY");
+            },
+            branch: `<p>你只问那宫人：“你怕本宫？”</p><p>她伏在地上，不敢答。</p><p>“怕也可以。”你语气平静，“宫里从来不要求人人喜欢自己的差事。可怕不怕，是你的心；当不当值，是宫规。”</p><p>你甚至没有提高声音。围观的人却先安静下来。</p>`,
+            result: "六宫威望 +6｜解锁【公开场合压场】历史记录",
+            next: "close"
+          },
+          {
+            id: "C",
+            label: "【才智≥60】把‘个人害怕’与‘官方认定’彻底拆开。",
+            condition: state => state.attributes.wit >= 60,
+            conditionText: state => `当前才智 ${state.attributes.wit} / 需要 60`,
+            apply(state, api) {
+              api.addGlobal("palacePrestige", 5);
+              api.setFlag("FLAG_SCHEME001_WIT", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“她家里信一句传言，是她家的事。”你看向管事，“但宫里若因为她害怕，就默认本宫真的‘不祥’，那是宫里替一句流言盖了印。”</p><p>你没有逼那宫人改口，只把责任推回真正该做判断的人。</p><p>这件事忽然变得很简单：个人可以迷信，制度不能跟着迷信。</p>`,
+            result: "六宫威望 +5｜解锁【制度拆解】历史记录",
+            next: "close"
+          },
+          {
+            id: "D",
+            label: "【心机≥55＋流言线索】不急着罚，先问她最初听到的原话。",
+            condition: (state, api) => state.attributes.scheming >= 55 && (api.hasFlag("FLAG_MAIN005_TRACE_RUMOR") || Boolean(state.intel["INTEL_RUMOR_SPREADS_ACROSS_PALACES"])),
+            conditionText: (state, api) => {
+              const clue = api.hasFlag("FLAG_MAIN005_TRACE_RUMOR") || Boolean(state.intel["INTEL_RUMOR_SPREADS_ACROSS_PALACES"]);
+              return `心机 ${state.attributes.scheming}/55｜流言线索 ${clue ? "已具备" : "未具备"}`;
+            },
+            apply(state, api) {
+              api.addIntel({
+                id: "INTEL_SCHEME001_SHARED_PHRASE",
+                name: "多处流言使用同一套措辞",
+                source: "宫人家中口信与既有传播记录比对",
+                status: "VERIFIED",
+                tags: ["舆论", "预言", "人为传播"]
+              });
+              api.setFlag("FLAG_SCHEME001_TRACE_PHRASE", "PERMANENT_HISTORY");
+            },
+            branch: `<p>你没有问她“谁让你怕”，只让她把家里托人带来的原话一字不差地重复。</p><p>说到第三句时，你已经听见了熟悉的措辞。</p><p>不同的人、不同的地方，却在重复同一句话。流言会自己长，但不会自己长得一模一样。</p>`,
+            result: "获得关键情报【多处流言使用同一套措辞】",
+            next: "close"
+          },
+          {
+            id: "E",
+            label: "【谋略≥70】允许她调走，但把这次调动变成一枚观察钩子。",
+            condition: state => state.attributes.strategy >= 70,
+            conditionText: state => `当前谋略 ${state.attributes.strategy} / 需要 70`,
+            apply(state, api) {
+              api.setFlag("FLAG_SCHEME001_BAIT_ROUTE", "ACTIVE_STATE");
+              api.addGlobal("staffLoyalty", 2);
+            },
+            branch: `<p>你同意她调走，没有追责，只额外吩咐一句：“既然她害怕，就别强留。”</p><p>你宫里的人有些意外。你只让她们记住：接下来是谁主动来问这次调动、谁最关心你有没有发怒。</p><p>有时候放走一颗棋，比扣在手里更容易看见它往哪里走。</p>`,
+            result: "宫人忠诚 +2｜开启【调动观察钩子】",
+            next: "close"
+          }
+        ]
+      },
+      close: {
+        type: "text",
+        text: () => `
+          <p>这件事暂时压了下去。</p>
+          <p>你没有抓到幕后的人，也没有必要现在就抓。至少从今天开始，“不祥”两个字再想被人拿来当现成的刀，就没那么轻松了。</p>
+        `,
+        completeEvent: true,
+        nextEvent: "MONTHLY_001"
+      }
+    }
+  },
+
+  MONTHLY_001: {
+    id: "MONTHLY_001",
+    name: "三月结算",
+    category: "HUB",
+    dateLabel: "第一年 · 三月月末",
+    startNode: "summary",
+    nodes: {
+      summary: {
+        type: "text",
+        autoApply(state) {
+          state.date = { year: 1, month: 4, period: "上旬" };
+        },
+        text: state => {
+          const snap = state.meta.monthStartSnapshot || { attributes: {}, globals: {} };
+          const milestones = {
+            appearance: [[75,"容貌出众"],[85,"惊艳级外貌反馈"]],
+            posture: [[55,"礼仪得体"],[70,"举止出挑"],[85,"仪态极佳"]],
+            temperament: [[55,"场合稳住"],[70,"公开压场"],[85,"威仪极强"]],
+            wit: [[55,"机敏应答"],[70,"高阶论辩"],[85,"复杂政务判断"]],
+            scheming: [[55,"察觉试探"],[70,"识破深层布局"],[85,"极高敏锐度"]],
+            strategy: [[55,"主动布局"],[70,"提前设局"],[85,"多线谋划"]],
+            constitution: [[55,"体力稳定"],[70,"高强度活动"],[85,"恢复力优秀"]]
+          };
+          const attrNames = {appearance:"容貌",posture:"体态",temperament:"气质",wit:"才智",scheming:"心机",strategy:"谋略",constitution:"体质",fortune:"福运"};
+          const rows = Object.entries(state.attributes).map(([key,val]) => {
+            const before = snap.attributes?.[key] ?? val;
+            const delta = val - before;
+            const reached = (milestones[key] || []).filter(([n]) => val >= n).map(([,name])=>name);
+            const next = (milestones[key] || []).find(([n]) => val < n);
+            const extra = next ? `下一阶段：${next[1]}（${next[0]}，还差${next[0]-val}）` : (reached.length ? "已达当前最高阶段" : "");
+            return `<div class="stat-row"><span>${attrNames[key]}</span><span>${val}${delta ? `（${delta>0?"+":""}${delta}）` : ""}${extra ? ` · ${extra}` : ""}</span></div>`;
+          }).join("");
+          const unlocked = [];
+          for (const [key,list] of Object.entries(milestones)) {
+            const before = snap.attributes?.[key] ?? state.attributes[key];
+            const now = state.attributes[key];
+            for (const [n,name] of list) if (before < n && now >= n) unlocked.push(`${attrNames[key]}：${name}`);
+          }
+          return `
+            <p><strong>三月结束。</strong></p>
+            <p>这一月，你真正能控制的不是宫里的风向，而是自己把哪几项东西练到了什么程度。</p>
+            <div class="result-box"><p><strong>本月成长</strong></p>${rows}</div>
+            ${unlocked.length ? `<div class="result-box"><p><strong>✨ 本月新解锁</strong></p><p>${unlocked.join("<br>")}</p></div>` : '<p>本月没有跨过新的阶段门槛，但已有数值正在接近下一档。</p>'}
+            <p>宫人忠诚：${state.globals.staffLoyalty}｜六宫威望：${state.globals.palacePrestige}｜银两：${state.globals.silver}</p>
+          `;
+        },
+        completeEvent: true,
+        nextEvent: "PROTO_V06_END"
+      }
+    }
+  },
+
+  PROTO_V06_END: {
+    id: "PROTO_V06_END",
+    name: "四月将启",
+    category: "HUB",
+    dateLabel: "第一年 · 四月上旬",
+    startNode: "end",
+    nodes: {
+      end: {
+        type: "text",
+        text: state => `
+          <p><strong>v0.6 月度养成闭环已跑通。</strong></p>
+          <p>本版新增：数值门槛提示、跨阶段反馈、李贤妃人物偶遇、SCHEME_001《不祥公主》以及月度成长结算。</p>
+          <p>当前总主动养成次数：${state.meta.actionCount || 0}。</p>
+          <p>下一阶段将开始把“四月”做成第一个真正完整月：主线/养成/人物偶遇/宫斗/情报共同存在，而不是只做测试切片。</p>
+        `,
+        finishPrototype: true
+      }
+    }
+  },
+
+  LEGACY_PROTO_V05_END: {
+    id: "LEGACY_PROTO_V05_END",
     name: "三月结束",
     category: "HUB",
     dateLabel: "第一年 · 四月上旬",
@@ -1356,7 +1623,7 @@ window.GAME_EVENTS = {
       end: {
         type: "text",
         text: state => `
-          <p><strong>v0.5 数值养成循环测试完成。</strong></p>
+          <p><strong>旧版v0.5测试结束。</strong></p>
           <p>你已经走完三月三旬、共九点主动养成。当前这版重点验证：有限行动点是否带来取舍、数值增长是否有爽感、随机事件是否只做插曲而不抢走养成回合。</p>
           <p>本轮主动养成次数：${state.meta.actionCount || 0}。</p>
           <p>如果你会产生“再过一旬看看”的感觉，下一版就继续扩充行动收益、随机池、人物偶遇和SCHEME_001《不祥公主》。</p>
@@ -1381,7 +1648,7 @@ window.GAME_EVENTS = {
   };
 
   const SAVE_KEY = "heqinPrincessSaveV03";
-  const SAVE_VERSION = 5;
+  const SAVE_VERSION = 6;
 
   let debugVisible = false;
   let state = null;
@@ -1432,7 +1699,10 @@ window.GAME_EVENTS = {
         maxActionPoints: 3,
         actionPoints: 3,
         periodActionCounts: {},
-        randomCooldowns: {}
+        randomCooldowns: {},
+        randomSeen: {},
+        pendingMilestones: [],
+        monthStartSnapshot: null
       }
     };
   }
@@ -1457,15 +1727,27 @@ window.GAME_EVENTS = {
     if (raw.meta.actionPoints == null) raw.meta.actionPoints = raw.currentEventId === "FREE_HUB" ? 3 : 3;
     if (!raw.meta.periodActionCounts) raw.meta.periodActionCounts = {};
     if (!raw.meta.randomCooldowns) raw.meta.randomCooldowns = {};
+    if (!raw.meta.randomSeen) raw.meta.randomSeen = {};
+    if (!raw.meta.pendingMilestones) raw.meta.pendingMilestones = [];
+    if (raw.meta.monthStartSnapshot == null && raw.currentEventId === "FREE_HUB") {
+      raw.meta.monthStartSnapshot = {
+        attributes: { ...raw.attributes },
+        globals: { ...raw.globals },
+        relations: JSON.parse(JSON.stringify(raw.relations || {}))
+      };
+    }
     if (!raw.meta.autoAppliedNodes) raw.meta.autoAppliedNodes = {};
     if (!raw.date) raw.date = { year: 1, month: 1, period: "上旬" };
     if (!raw.history) raw.history = [];
     if (!raw.completedEvents) raw.completedEvents = [];
     if (!raw.flags) raw.flags = {};
     if (!raw.intel) raw.intel = {};
-    if (raw.currentEventId === "PROTO_V04_END") {
-      raw.currentEventId = "PROTO_V05_END";
-      raw.currentNodeId = "end";
+    if (raw.currentEventId === "PROTO_V04_END" || raw.currentEventId === "PROTO_V05_END" || raw.currentEventId === "LEGACY_PROTO_V05_END") {
+      raw.currentEventId = "SCHEME_001";
+      raw.currentNodeId = "incident";
+      raw.date = { year: 1, month: 3, period: "下旬" };
+      raw.meta.actionCount = Math.max(raw.meta.actionCount || 0, 9);
+      raw.meta.actionPoints = 0;
     }
     if (!raw.currentEventId || !raw.currentNodeId) throw new Error("存档缺少当前位置");
     return raw;
@@ -1527,7 +1809,28 @@ window.GAME_EVENTS = {
       state.globals[key] = Math.max(0, (state.globals[key] || 0) + delta);
     },
     addAttribute(key, delta) {
-      state.attributes[key] = Math.max(0, Math.min(100, (state.attributes[key] || 0) + delta));
+      const thresholds = [55, 70, 75, 85];
+      const before = state.attributes[key] || 0;
+      const after = Math.max(0, Math.min(100, before + delta));
+      state.attributes[key] = after;
+      if (delta > 0) {
+        const crossed = thresholds.filter(n => before < n && after >= n);
+        if (crossed.length) {
+          const names = {
+            appearance: {75:"容貌出众",85:"惊艳级外貌反馈"},
+            posture: {55:"礼仪得体",70:"举止出挑",85:"仪态极佳"},
+            temperament: {55:"场合稳住",70:"公开压场",85:"威仪极强"},
+            wit: {55:"机敏应答",70:"高阶论辩",85:"复杂政务判断"},
+            scheming: {55:"察觉试探",70:"识破深层布局",85:"极高敏锐度"},
+            strategy: {55:"主动布局",70:"提前设局",85:"多线谋划"},
+            constitution: {55:"体力稳定",70:"高强度活动",85:"恢复力优秀"}
+          };
+          crossed.forEach(n => {
+            const label = names[key]?.[n];
+            if (label) state.meta.pendingMilestones.push(label);
+          });
+        }
+      }
     },
     addRelation(target, axis, delta) {
       if (!state.relations[target]) return;
@@ -1585,7 +1888,7 @@ window.GAME_EVENTS = {
 
     const pools = {
       DAILY: ["RAND_001", "RAND_004", "RAND_007", "RAND_008", "RAND_010"],
-      CHARACTER: ["CHAR_ZJY_001"],
+      CHARACTER: ["CHAR_ZJY_001", "CHAR_LXF_001"],
       INTEL: ["INTEL_001"]
     };
 
@@ -1593,13 +1896,15 @@ window.GAME_EVENTS = {
     let pool = pools[poolName] || pools.DAILY;
     let eligible = pool.filter(id => {
       const last = state.meta.randomCooldowns?.[id];
-      return last == null || (state.meta.actionCount - last) >= 3;
+      const onceBlocked = events[id]?.oncePerRun && state.meta.randomSeen?.[id];
+      return !onceBlocked && (last == null || (state.meta.actionCount - last) >= 3);
     });
 
     if (!eligible.length) {
       eligible = pools.DAILY.filter(id => {
         const last = state.meta.randomCooldowns?.[id];
-        return last == null || (state.meta.actionCount - last) >= 3;
+        const onceBlocked = events[id]?.oncePerRun && state.meta.randomSeen?.[id];
+        return !onceBlocked && (last == null || (state.meta.actionCount - last) >= 3);
       });
     }
     if (!eligible.length) return null;
@@ -1607,14 +1912,16 @@ window.GAME_EVENTS = {
   }
 
   function endPeriod() {
-    advancePeriod();
+    const finishingMarch = state.date.year === 1 && state.date.month === 3 && state.date.period === "下旬" && state.meta.actionCount >= 9;
     state.meta.actionPoints = state.meta.maxActionPoints;
     state.meta.periodActionCounts = {};
 
-    if ((state.date.year === 1 && state.date.month >= 4) || state.meta.actionCount >= 9) {
-      state.currentEventId = "PROTO_V05_END";
-      state.currentNodeId = "end";
+    if (finishingMarch) {
+      state.meta.actionPoints = 0;
+      state.currentEventId = "SCHEME_001";
+      state.currentNodeId = "incident";
     } else {
+      advancePeriod();
       state.currentEventId = "FREE_HUB";
       state.currentNodeId = "action";
     }
@@ -1630,6 +1937,7 @@ window.GAME_EVENTS = {
     const randomId = pickRandomEvent(choice);
     if (randomId) {
       state.meta.randomCooldowns[randomId] = state.meta.actionCount;
+      if (events[randomId]?.oncePerRun) state.meta.randomSeen[randomId] = true;
       state.currentEventId = randomId;
       state.currentNodeId = events[randomId].startNode;
       autoSave();
@@ -1767,12 +2075,16 @@ window.GAME_EVENTS = {
 
   function choose(event, node, choice) {
     recordChoice(event.id, state.currentNodeId, choice);
+    state.meta.pendingMilestones = [];
     if (choice.apply) choice.apply(state, api);
 
     $("#eventText").innerHTML += choice.branch || "";
     $("#choiceArea").innerHTML = "";
     const debugChoice = debugVisible ? `<p class="result-meta">Choice: ${event.id}/${state.currentNodeId}/${choice.id}</p>` : "";
-    $("#resultArea").innerHTML = `<p><strong>结算</strong></p><p>${choice.result || "无即时变化"}</p>${debugChoice}`;
+    const milestoneText = state.meta.pendingMilestones.length
+      ? `<p><strong>✨ 阶段解锁</strong><br>${state.meta.pendingMilestones.join("<br>")}</p>`
+      : "";
+    $("#resultArea").innerHTML = `<p><strong>结算</strong></p><p>${choice.result || "无即时变化"}</p>${milestoneText}${debugChoice}`;
     $("#resultArea").classList.remove("hidden");
     $("#continueArea").classList.remove("hidden");
     $("#continueBtn").onclick = () => {
@@ -1833,9 +2145,9 @@ window.GAME_EVENTS = {
   function showFinish() {
     api.completeEvent(state.currentEventId);
     $("#eventText").innerHTML = `
-      <p><strong>v0.5 数值养成循环已跑通。</strong></p>
-      <p>本版已经验证：每旬3行动点、三旬共9次主动养成、随机事件不额外吞行动点、行动类型影响事件池权重，以及浏览器本地存档。</p>
-      <p>下一阶段可以继续加入：SCHEME_001《不祥公主》、更多人物偶遇、月度结算、服饰养成与长期数值成长曲线。</p>
+      <p><strong>v0.6 月度养成闭环已跑通。</strong></p>
+      <p>本版已经验证：数值门槛即时反馈、人物偶遇扩容、SCHEME_001《不祥公主》、月度成长结算，以及旧档继续进入新内容。</p>
+      <p>下一阶段可以开始制作四月完整月循环，并加入服饰养成、更多人物事件和正式月度资源结算。</p>
     `;
     $("#choiceArea").innerHTML = "";
     $("#resultArea").classList.add("hidden");
