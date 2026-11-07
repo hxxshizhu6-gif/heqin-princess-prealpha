@@ -2423,7 +2423,7 @@ window.GAME_EVENTS = {
             },
             branch:`<p>车驾出宫时，你隔着帘子看见街面重新铺展开来。和入京那天不同，这次你不是被送进来的。</p><p>寺门外人多，却没人知道你究竟是来礼佛，还是来看看宫墙外的人怎么活。</p>`,
             result:"前往礼佛寺｜消耗本旬外出许可",
-            nextEvent:"FREE_HUB"
+            nextEvent:"OUTSIDE_ACTION_HUB"
           },
           {
             id:"INN",
@@ -2436,7 +2436,7 @@ window.GAME_EVENTS = {
             },
             branch:`<p>驿馆离宫城不算远，规矩却完全不同。这里的人说故国口音、穿故国旧服，也因此比任何地方都更容易让人忘记自己已经身在帝国。</p>`,
             result:"前往驿馆｜消耗本旬外出许可",
-            nextEvent:"FREE_HUB"
+            nextEvent:"OUTSIDE_ACTION_HUB"
           },
           {
             id:"BACK",
@@ -2445,6 +2445,75 @@ window.GAME_EVENTS = {
             branch:`<p>你临时改了主意。外出机会还在，本旬什么时候用都可以。</p>`,
             result:"未消耗外出许可",
             nextEvent:"MAP_HUB"
+          }
+        ]
+      }
+    }
+  },
+
+  OUTSIDE_ACTION_HUB:{
+    id:"OUTSIDE_ACTION_HUB",
+    name:"宫外行动",
+    category:"HUB",
+    dateLabel:state=>{
+      const cn=["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year]||state.date.year}年 · ${cn[state.date.month]||state.date.month}月${state.date.period}`;
+    },
+    startNode:"action",
+    nodes:{
+      action:{
+        type:"choice",
+        text:state=>{
+          const name=state.meta.currentLocation==="TEMPLE"?"礼佛寺":"驿馆";
+          return `
+            <p><strong>当前地点：${name}</strong>｜本旬行动点：${state.meta.actionPoints}/${state.meta.maxActionPoints}</p>
+            <p>宫外行动同样消耗1点行动点，但养成方式与宫内不同。完成行动后可能触发宫外专属随机事件。</p>
+          `;
+        },
+        choices:[
+          {
+            id:"TEMPLE_WALK",
+            label:"寺外走走 · 看香客、街面和来往女眷",
+            condition:state=>state.meta.currentLocation==="TEMPLE",
+            consumesActionPoint:true,
+            apply(state,api){api.addAttribute("scheming",1);api.addAttribute("constitution",1);},
+            branch:`<p>你没有急着进殿，只沿寺外慢慢走了一圈。宫墙外的人说话更松，也更容易露出真正关心什么。</p>`,
+            result:"心机 +1｜体质 +1",
+            eventPoolWeights:{DAILY:0.45,CHARACTER:0.20,INTEL:0.35},
+            eventChanceMod:0.08
+          },
+          {
+            id:"TEMPLE_QUIET",
+            label:"静坐片刻 · 离开宫中人声，整理自己的思路",
+            condition:state=>state.meta.currentLocation==="TEMPLE",
+            consumesActionPoint:true,
+            apply(state,api){api.addAttribute("temperament",1);api.addAttribute("strategy",1);},
+            branch:`<p>你在偏殿外坐了一会儿，没有求签，也没有问命。只是难得有一段时间，不需要立刻回应任何人的目光。</p>`,
+            result:"气质 +1｜谋略 +1",
+            eventPoolWeights:{DAILY:0.50,CHARACTER:0.20,INTEL:0.30},
+            eventChanceMod:0.05
+          },
+          {
+            id:"INN_NEWS",
+            label:"看公开文书 · 翻使团告示与往来名册",
+            condition:state=>state.meta.currentLocation==="INN",
+            consumesActionPoint:true,
+            apply(state,api){api.addAttribute("wit",1);api.addAttribute("scheming",1);},
+            branch:`<p>你没有碰任何不该看的东西，只翻了公开摆着的告示、轮值与往来名册。公开信息只要放在一起，也能看出许多细节。</p>`,
+            result:"才智 +1｜心机 +1",
+            eventPoolWeights:{DAILY:0.15,CHARACTER:0.35,INTEL:0.50},
+            eventChanceMod:0.10
+          },
+          {
+            id:"INN_SOCIAL",
+            label:"与故国随员寒暄 · 不问机密，只听近况",
+            condition:state=>state.meta.currentLocation==="INN",
+            consumesActionPoint:true,
+            apply(state,api){api.addAttribute("scheming",1);api.addGlobal("staffLoyalty",1);},
+            branch:`<p>你只问天气、路程和吃住。越是不问“故国怎么样”，别人越容易自己把最近发生的琐事说出来。</p>`,
+            result:"心机 +1｜宫人忠诚 +1",
+            eventPoolWeights:{DAILY:0.20,CHARACTER:0.50,INTEL:0.30},
+            eventChanceMod:0.10
           }
         ]
       }
@@ -2635,6 +2704,92 @@ window.GAME_EVENTS = {
         ]
       },
       close:{type:"text",text:()=>`<p>驿馆离宫门不远，可一张纸从这里递进宫里，依然要绕很多人的手。</p><p>你第一次真正感觉到：宫外线不是“自由”，只是规则换了一套。</p>`,returnToHub:true}
+    }
+  },
+
+  OUT_TEMPLE_002:{
+    id:"OUT_TEMPLE_002",
+    name:"寺外小摊",
+    category:"RANDOM",
+    minMonth:6,
+    locations:["TEMPLE"],
+    dateLabel:state=>{
+      const cn=["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year]||state.date.year}年 · ${cn[state.date.month]||state.date.month}月${state.date.period}`;
+    },
+    startNode:"event",
+    nodes:{
+      event:{
+        type:"choice",
+        text:()=>`
+          <p>寺外有一排小摊，卖香包、纸扇、蜜饯和廉价首饰。</p>
+          <p>宫里用惯了内务处的东西，再看这些不值钱的小物，反而有种久违的随意。</p>
+        `,
+        choices:[
+          {
+            id:"A",
+            label:"买一点蜜饯带回去给宫人。",
+            condition:state=>state.globals.silver>=5,
+            conditionText:state=>`当前银两 ${state.globals.silver} / 需要 5`,
+            apply(state,api){api.addGlobal("silver",-5);api.addGlobal("staffLoyalty",1);},
+            branch:`<p>东西不贵，带回宫以后却被分得干干净净。有人笑着说，宫外的甜味就是跟御膳房不一样。</p>`,
+            result:"银两 -5｜宫人忠诚 +1",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"什么都不买，只看看价钱。",
+            apply(state,api){api.addIntel({id:"INTEL_TEMPLE_MARKET_PRICE",name:"寺外小摊常见物价",source:"亲自观察",status:"TRUE",tags:["宫外","市井","物价"]});},
+            branch:`<p>你把几个常见东西的价钱记下。以后再有人报账时，至少不会连宫外一包蜜饯值多少都不知道。</p>`,
+            result:"获得情报【寺外常见物价】",
+            next:"close"
+          }
+        ]
+      },
+      close:{type:"text",text:()=>`<p>宫外不是每次都能碰见秘密。有时候只是买一包蜜饯，也足够提醒你宫墙之外还有正常日子。</p>`,returnToHub:true}
+    }
+  },
+
+  OUT_INN_001:{
+    id:"OUT_INN_001",
+    name:"一碗故国汤面",
+    category:"RANDOM",
+    minMonth:6,
+    locations:["INN"],
+    dateLabel:state=>{
+      const cn=["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year]||state.date.year}年 · ${cn[state.date.month]||state.date.month}月${state.date.period}`;
+    },
+    startNode:"event",
+    nodes:{
+      event:{
+        type:"choice",
+        text:()=>`
+          <p>驿馆后厨做了一碗故国常见的汤面。味道并不精致，甚至比不上你从前宫里的厨子。</p>
+          <p>可你闻到那股熟悉的香气时，身边的陪嫁宫女还是一下红了眼圈。</p>
+        `,
+        choices:[
+          {
+            id:"A",
+            label:"让后厨多做几碗，大家一起吃。",
+            condition:state=>state.globals.silver>=8,
+            conditionText:state=>`当前银两 ${state.globals.silver} / 需要 8`,
+            apply(state,api){api.addGlobal("silver",-8);api.addGlobal("staffLoyalty",2);},
+            branch:`<p>你没说什么“思乡”，只让人多下了几碗面。吃东西比说大道理有用。</p>`,
+            result:"银两 -8｜宫人忠诚 +2",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"只吃自己的，不把情绪放大。",
+            apply(state,api){api.addAttribute("temperament",1);},
+            branch:`<p>你安静吃完，没有刻意怀念，也没有故意装作不在意。故国已经是过去的一部分，但不是你必须天天表演的伤口。</p>`,
+            result:"气质 +1",
+            next:"close"
+          }
+        ]
+      },
+      close:{type:"text",text:()=>`<p>一碗面吃完，你重新坐上回宫的车。熟悉的味道没有把你拉回去，只是从身后轻轻碰了你一下。</p>`,returnToHub:true}
     }
   },
 
@@ -3094,7 +3249,7 @@ window.GAME_EVENTS = {
     if (Math.random() >= chance) return null;
 
     const pools = {
-      DAILY: ["RAND_001", "RAND_004", "RAND_007", "RAND_008", "RAND_010", "RAND_ROOM_001", "RAND_GARDEN_001", "RAND_SHANGGONG_001", "RAND_TAIYI_001", "OUT_TEMPLE_001"],
+      DAILY: ["RAND_001", "RAND_004", "RAND_007", "RAND_008", "RAND_010", "RAND_ROOM_001", "RAND_GARDEN_001", "RAND_SHANGGONG_001", "RAND_TAIYI_001", "OUT_TEMPLE_001", "OUT_TEMPLE_002", "OUT_INN_001"],
       CHARACTER: ["CHAR_ZJY_001", "CHAR_LXF_001", "CHAR_EMP_001", "HGF_002", "CHAR_ZJY_002", "CHAR_TAIHOU_001", "GRD_002"],
       INTEL: ["INTEL_001", "INTEL_002", "INTEL_LIBRARY_001"]
     };
@@ -3113,7 +3268,10 @@ window.GAME_EVENTS = {
       const minMonth = events[id]?.minMonth || 1;
       const monthBlocked = state.date.year === 1 && state.date.month < minMonth;
       const locations = events[id]?.locations;
-      const locationBlocked = Array.isArray(locations) && locations.length && !locations.includes(state.meta.currentLocation);
+      const outside = ["TEMPLE","INN"].includes(state.meta.currentLocation);
+      const locationBlocked = outside
+        ? !(Array.isArray(locations) && locations.includes(state.meta.currentLocation))
+        : (Array.isArray(locations) && locations.length && !locations.includes(state.meta.currentLocation));
       return !onceBlocked && !monthBlocked && !locationBlocked && (last == null || (state.meta.actionCount - last) >= 3);
     });
 
@@ -3124,7 +3282,10 @@ window.GAME_EVENTS = {
         const minMonth = events[id]?.minMonth || 1;
         const monthBlocked = state.date.year === 1 && state.date.month < minMonth;
         const locations = events[id]?.locations;
-        const locationBlocked = Array.isArray(locations) && locations.length && !locations.includes(state.meta.currentLocation);
+        const outside = ["TEMPLE","INN"].includes(state.meta.currentLocation);
+        const locationBlocked = outside
+          ? !(Array.isArray(locations) && locations.includes(state.meta.currentLocation))
+          : (Array.isArray(locations) && locations.length && !locations.includes(state.meta.currentLocation));
         return !onceBlocked && !monthBlocked && !locationBlocked && (last == null || (state.meta.actionCount - last) >= 3);
       });
     }
