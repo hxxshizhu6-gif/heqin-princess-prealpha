@@ -1699,6 +1699,7 @@ window.GAME_EVENTS = {
 
   CHAR_EMP_001: {
     id: "CHAR_EMP_001",
+    minMonth: 4,
     name: "一句顺口的评价",
     category: "CHARACTER",
     oncePerRun: true,
@@ -1765,6 +1766,7 @@ window.GAME_EVENTS = {
 
   HGF_002: {
     id: "HGF_002",
+    minMonth: 4,
     name: "同色宫装",
     category: "CHARACTER",
     oncePerRun: true,
@@ -1827,6 +1829,7 @@ window.GAME_EVENTS = {
 
   CHAR_ZJY_002: {
     id: "CHAR_ZJY_002",
+    minMonth: 4,
     name: "借二十两",
     category: "CHARACTER",
     oncePerRun: true,
@@ -1896,6 +1899,7 @@ window.GAME_EVENTS = {
 
   INTEL_002: {
     id: "INTEL_002",
+    minMonth: 4,
     name: "谁最关心结果",
     category: "INTEL",
     oncePerRun: true,
@@ -2344,14 +2348,18 @@ window.GAME_EVENTS = {
     let eligible = pool.filter(id => {
       const last = state.meta.randomCooldowns?.[id];
       const onceBlocked = events[id]?.oncePerRun && state.meta.randomSeen?.[id];
-      return !onceBlocked && (last == null || (state.meta.actionCount - last) >= 3);
+      const minMonth = events[id]?.minMonth || 1;
+      const monthBlocked = state.date.year === 1 && state.date.month < minMonth;
+      return !onceBlocked && !monthBlocked && (last == null || (state.meta.actionCount - last) >= 3);
     });
 
     if (!eligible.length) {
       eligible = pools.DAILY.filter(id => {
         const last = state.meta.randomCooldowns?.[id];
         const onceBlocked = events[id]?.oncePerRun && state.meta.randomSeen?.[id];
-        return !onceBlocked && (last == null || (state.meta.actionCount - last) >= 3);
+        const minMonth = events[id]?.minMonth || 1;
+        const monthBlocked = state.date.year === 1 && state.date.month < minMonth;
+        return !onceBlocked && !monthBlocked && (last == null || (state.meta.actionCount - last) >= 3);
       });
     }
     if (!eligible.length) return null;
