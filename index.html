@@ -2899,6 +2899,186 @@ window.GAME_EVENTS = {
     }
   },
 
+  CHAR_TAIYI_PHYSICIAN_001:{
+    id:"CHAR_TAIYI_PHYSICIAN_001",
+    name:"欲言又止的脉案",
+    category:"CHARACTER",
+    minMonth:6,
+    locations:["TAIYI"],
+    oncePerRun:true,
+    dateLabel:state=>{
+      const cn=["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year]||state.date.year}年 · ${cn[state.date.month]||state.date.month}月${state.date.period}`;
+    },
+    startNode:"event",
+    nodes:{
+      event:{
+        type:"choice",
+        text:()=>`
+          <p>太医院今日当值的是一名年轻医官。你原本只让他按例请个平安脉，他把手收回去以后，却没有立刻写脉案。</p>
+          <p>“娘娘近来睡得可好？”他先问了一句，又像觉得还不够，低头重新斟酌措辞。</p>
+          <p>那一瞬间的欲言又止，比直接说一句“无碍”更让人在意。</p>
+        `,
+        choices:[
+          {
+            id:"A",
+            label:"只问身体：有什么便直说，不必顾忌。",
+            apply(state,api){
+              state.npcProfiles.physician.known=true;
+              state.contacts.physician=state.contacts.physician||{familiarity:0};
+              state.contacts.physician.familiarity+=8;
+            },
+            branch:state=>{
+              const con=state.attributes.constitution;
+              if(con<45) return `<p>医官沉默片刻：“娘娘底子偏虚，眼下还谈不上病，只是若一直熬神、少眠，往后容易吃亏。”</p><p>他说得克制，没有把一次脉象说成大病。</p>`;
+              if(con<65) return `<p>“没有大碍。”他终于道，“只是劳神比劳力更伤身。娘娘若能规律休息，脉象会稳得多。”</p>`;
+              return `<p>医官把脉案合上：“脉象平稳。娘娘若只是来请平安脉，臣今日可以少写两行了。”</p><p>他说这话时终于有了一点笑意。</p>`;
+            },
+            result:"认识固定NPC【太医院医官】｜人脉熟悉度 +8",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"追问子嗣：你方才迟疑，是因为这个？",
+            apply(state,api){
+              state.npcProfiles.physician.known=true;
+              state.contacts.physician=state.contacts.physician||{familiarity:0};
+              state.contacts.physician.familiarity+=10;
+              state.health.fertilityKnown=true;
+              api.setFlag("FLAG_HEALTH_FERTILITY_KNOWN","PERMANENT_HISTORY");
+            },
+            branch:state=>{
+              const f=state.health.fertility;
+              if(f<45) return `<p>医官明显停了一下，才低声道：“若只按眼下脉象看，子嗣一事恐怕不会太容易。但脉象不是判词，先调养，再看变化。”</p><p>他没有说“不能”，也没有拿一句话替你定终身。</p>`;
+              if(f<70) return `<p>“谈不上有碍。”他答得很谨慎，“只是并非最容易受孕的体质。若以后真有打算，提前调养总比临时着急好。”</p>`;
+              return `<p>医官抬眼看你：“娘娘多虑了。至少从眼下看，子嗣方面没有明显妨碍。”</p><p>这次他终于不再欲言又止。</p>`;
+            },
+            result:state=>{
+              const f=state.health.fertility;
+              const label=f<45?"偏难":(f<70?"普通":"较佳");
+              return `认识固定NPC【太医院医官】｜人脉熟悉度 +10｜子嗣体质评估：${label}`;
+            },
+            next:"close"
+          },
+          {
+            id:"C",
+            label:"不追问。先记住这个医官，下次再说。",
+            apply(state){
+              state.npcProfiles.physician.known=true;
+              state.contacts.physician=state.contacts.physician||{familiarity:0};
+              state.contacts.physician.familiarity+=4;
+            },
+            branch:`<p>你没有逼他解释。太医院的人见过太多不能乱说的话，逼得越急，得到的越可能只是最安全的答案。</p><p>你只记住了他的脸和姓氏。</p>`,
+            result:"认识固定NPC【太医院医官】｜人脉熟悉度 +4",
+            next:"close"
+          }
+        ]
+      },
+      close:{type:"text",text:()=>`<p>从今天起，太医院对你不再只是一个地点。这里有了一个会记得你脉案、也会记得你问过什么的人。</p>`,returnToHub:true}
+    }
+  },
+
+  CHAR_TEMPLE_CONTACT_001:{
+    id:"CHAR_TEMPLE_CONTACT_001",
+    name:"寺门口的熟面孔",
+    category:"CHARACTER",
+    minMonth:6,
+    locations:["TEMPLE"],
+    oncePerRun:true,
+    dateLabel:state=>{
+      const cn=["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year]||state.date.year}年 · ${cn[state.date.month]||state.date.month}月${state.date.period}`;
+    },
+    startNode:"event",
+    nodes:{
+      event:{
+        type:"choice",
+        text:()=>`
+          <p>你第二次经过寺门外那排铺子时，香烛铺的女掌柜先认出了你身边的宫女。</p>
+          <p>她没有喊身份，只笑着把柜台上的香灰掸了掸：“贵客又来了。”</p>
+          <p>能在寺门口做多年生意的人，见过官眷、商户、宗室仆从，也知道什么话该听、什么话不该往外传。</p>
+        `,
+        choices:[
+          {
+            id:"A",
+            label:"买点东西，顺便与她闲聊几句。",
+            condition:state=>state.globals.silver>=10,
+            conditionText:state=>`当前银两 ${state.globals.silver} / 需要 10`,
+            apply(state,api){
+              api.addGlobal("silver",-10);
+              state.npcProfiles.templeContact.known=true;
+              state.contacts.templeContact=state.contacts.templeContact||{familiarity:0};
+              state.contacts.templeContact.familiarity+=10;
+            },
+            branch:`<p>你买的东西不多，也没问敏感事。女掌柜却自己说起最近哪家府上的女眷常来、哪条街最近查得严。</p><p>真正的人脉往往不是“我替你办事”，而是从“我愿意多跟你说两句”开始。</p>`,
+            result:"银两 -10｜认识固定NPC【寺外女掌柜】｜人脉熟悉度 +10",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"不买东西，只记住她识人却不声张。",
+            apply(state){
+              state.npcProfiles.templeContact.known=true;
+              state.contacts.templeContact=state.contacts.templeContact||{familiarity:0};
+              state.contacts.templeContact.familiarity+=5;
+            },
+            branch:`<p>你只与她点头，没有久留。可你记住了一件事：她认得宫里人，却没有借机高声招揽生意。</p><p>嘴严，有时候比消息多更值钱。</p>`,
+            result:"认识固定NPC【寺外女掌柜】｜人脉熟悉度 +5",
+            next:"close"
+          }
+        ]
+      },
+      close:{type:"text",text:()=>`<p>以后再来礼佛寺，你知道这里至少有一个人不是完全陌生的。</p>`,returnToHub:true}
+    }
+  },
+
+  RAND_SHANGGONG_BRIBE_001:{
+    id:"RAND_SHANGGONG_BRIBE_001",
+    name:"二十两能买什么",
+    category:"RANDOM",
+    minMonth:6,
+    locations:["SHANGGONG"],
+    dateLabel:state=>{
+      const cn=["零","一","二","三","四","五","六","七","八","九","十","十一","十二"];
+      return `第${cn[state.date.year]||state.date.year}年 · ${cn[state.date.month]||state.date.month}月${state.date.period}`;
+    },
+    startNode:"event",
+    nodes:{
+      event:{
+        type:"choice",
+        text:()=>`
+          <p>尚宫局一名小管事替你找旧册时，顺口抱怨最近人事调动太多，连谁从哪宫调去哪里都快记混了。</p>
+          <p>你听得出来，他不是主动卖消息，只是在等一个“值得继续说”的理由。</p>
+        `,
+        choices:[
+          {
+            id:"A",
+            label:"赏二十两，请他以后遇到与你有关的调动多留意。",
+            condition:state=>state.globals.silver>=20,
+            conditionText:state=>`当前银两 ${state.globals.silver} / 需要 20`,
+            apply(state,api){
+              api.addGlobal("silver",-20);
+              api.addIntel({id:"INTEL_SHANGGONG_PAID_EYES",name:"尚宫局小管事愿意留意与你有关的人事调动",source:"赏银建立的低层消息口",status:"TRUE",tags:["尚宫局","人事","收买消息"]});
+              api.setFlag("FLAG_SHANGGONG_PAID_SOURCE","ACTIVE_STATE");
+            },
+            branch:`<p>你没有问谁的秘密，只把银子推过去：“若以后有调动牵到本宫的人，提前递句话。”</p><p>二十两买不到大秘密，但足够让一个原本与你无关的人，在看见你的名字时多停一眼。</p>`,
+            result:"银两 -20｜建立【尚宫局低层消息口】",
+            next:"close"
+          },
+          {
+            id:"B",
+            label:"不花钱，只把他说过的人事变化记下来。",
+            apply(state,api){api.addAttribute("scheming",1);},
+            branch:`<p>你没接这个口子。银子不是不能花，只是不必每次都花。</p><p>有时候先知道谁愿意收钱，本身也是情报。</p>`,
+            result:"心机 +1",
+            next:"close"
+          }
+        ]
+      },
+      close:{type:"text",text:()=>`<p>例银从这一刻开始不再只是面板上的数字。钱可以换衣服，也可以换别人替你多看一眼。</p>`,returnToHub:true}
+    }
+  },
+
   MONTHLY_004:{
     id:"MONTHLY_004",
     name:"六月结算",
@@ -3397,8 +3577,8 @@ window.GAME_EVENTS = {
     if (Math.random() >= chance) return null;
 
     const pools = {
-      DAILY: ["RAND_001", "RAND_004", "RAND_007", "RAND_008", "RAND_010", "RAND_ROOM_001", "RAND_GARDEN_001", "RAND_SHANGGONG_001", "RAND_TAIYI_001", "OUT_TEMPLE_001", "OUT_TEMPLE_002", "OUT_INN_001"],
-      CHARACTER: ["CHAR_ZJY_001", "CHAR_LXF_001", "CHAR_EMP_001", "HGF_002", "CHAR_ZJY_002", "CHAR_TAIHOU_001", "GRD_002"],
+      DAILY: ["RAND_001", "RAND_004", "RAND_007", "RAND_008", "RAND_010", "RAND_ROOM_001", "RAND_GARDEN_001", "RAND_SHANGGONG_001", "RAND_TAIYI_001", "RAND_SHANGGONG_BRIBE_001", "OUT_TEMPLE_001", "OUT_TEMPLE_002", "OUT_INN_001"],
+      CHARACTER: ["CHAR_ZJY_001", "CHAR_LXF_001", "CHAR_EMP_001", "HGF_002", "CHAR_ZJY_002", "CHAR_TAIHOU_001", "GRD_002", "CHAR_TAIYI_PHYSICIAN_001", "CHAR_TEMPLE_CONTACT_001"],
       INTEL: ["INTEL_001", "INTEL_002", "INTEL_LIBRARY_001"]
     };
 
@@ -3696,13 +3876,15 @@ window.GAME_EVENTS = {
     state.meta.pendingMilestones = [];
     if (choice.apply) choice.apply(state, api);
 
-    $("#eventText").innerHTML += choice.branch || "";
+    const branchText = typeof choice.branch === "function" ? choice.branch(state, api) : (choice.branch || "");
+    const resultText = typeof choice.result === "function" ? choice.result(state, api) : (choice.result || "无即时变化");
+    $("#eventText").innerHTML += branchText;
     $("#choiceArea").innerHTML = "";
     const debugChoice = debugVisible ? `<p class="result-meta">Choice: ${event.id}/${state.currentNodeId}/${choice.id}</p>` : "";
     const milestoneText = state.meta.pendingMilestones.length
       ? `<p><strong>✨ 阶段解锁</strong><br>${state.meta.pendingMilestones.join("<br>")}</p>`
       : "";
-    $("#resultArea").innerHTML = `<p><strong>结算</strong></p><p>${choice.result || "无即时变化"}</p>${milestoneText}${debugChoice}`;
+    $("#resultArea").innerHTML = `<p><strong>结算</strong></p><p>${resultText}</p>${milestoneText}${debugChoice}`;
     $("#resultArea").classList.remove("hidden");
     $("#continueArea").classList.remove("hidden");
     $("#continueBtn").onclick = () => {
