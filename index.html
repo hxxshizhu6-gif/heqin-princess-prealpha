@@ -1,14 +1,1000 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>和亲公主</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>《和亲公主》Pre-Alpha v0.3</title>
+  <style>
+:root {
+  --bg: #f3efe7;
+  --paper: #fffdf8;
+  --ink: #27231f;
+  --muted: #756f66;
+  --line: #ded6c9;
+  --accent: #6c3f3a;
+  --accent-soft: #efe1dc;
+  --shadow: 0 12px 30px rgba(55, 42, 32, 0.08);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.75;
+}
+button { font: inherit; }
+.app-shell {
+  width: min(1080px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 28px 0 48px;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+h1 { margin: 0; font-family: "Songti SC", "STSong", serif; font-size: 34px; }
+.date-label { margin: 6px 0 0; color: var(--muted); }
+.top-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.panel {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+.status-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.compact { padding: 15px 16px; }
+.compact h2, .debug-panel h2 { margin: 0 0 10px; font-size: 15px; }
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 12px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed #e7e0d5;
+  font-size: 13px;
+}
+.stat-row span:last-child { font-variant-numeric: tabular-nums; font-weight: 650; }
+.hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+.event-panel { padding: 24px; }
+.event-head { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.event-head h2 { margin: 0; font-family: "Songti SC", "STSong", serif; font-size: 24px; }
+.tag { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 3px 9px; font-size: 12px; font-weight: 700; }
+.story { padding: 18px 2px 6px; font-family: "Songti SC", "STSong", serif; font-size: 17px; }
+.story p { margin: 0 0 1em; }
+.choices { display: grid; gap: 10px; margin-top: 14px; }
+.choice-btn {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  padding: 13px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: .15s ease;
+}
+.choice-btn:hover:not(:disabled) { border-color: #b99f97; transform: translateY(-1px); box-shadow: 0 8px 18px rgba(55,42,32,.06); }
+.choice-btn:disabled { cursor: not-allowed; opacity: .48; background: #f2efe9; }
+.choice-main { display: block; font-weight: 650; }
+.choice-condition { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+.result-area {
+  margin-top: 18px;
+  padding: 15px 16px;
+  background: #faf4ef;
+  border: 1px solid #ead9d0;
+  border-radius: 12px;
+}
+.result-area p { margin: .45em 0; }
+.result-meta { color: var(--muted); font-size: 13px; }
+.continue-area { margin-top: 14px; display: flex; justify-content: flex-end; }
+.primary-btn, .ghost-btn {
+  border-radius: 10px;
+  cursor: pointer;
+  transition: .15s ease;
+}
+.primary-btn { border: none; background: var(--accent); color: white; padding: 10px 18px; }
+.primary-btn:hover { filter: brightness(.95); }
+.ghost-btn { border: 1px solid var(--line); background: rgba(255,255,255,.7); color: var(--ink); padding: 8px 11px; }
+.ghost-btn:hover { background: white; }
+.debug-panel { margin-top: 12px; padding: 16px; }
+.debug-head { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
+.debug-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.debug-columns > div { min-width: 0; }
+.debug-columns h3 { font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+pre { margin: 0; padding: 10px; min-height: 130px; overflow: auto; border-radius: 10px; background: #27231f; color: #f3eee7; font-size: 11px; line-height: 1.55; }
+.hidden { display: none !important; }
+footer { color: var(--muted); font-size: 12px; text-align: center; padding: 18px 0 0; }
+
+@media (max-width: 820px) {
+  .topbar { align-items: flex-start; flex-direction: column; }
+  .top-actions { justify-content: flex-start; }
+  .status-grid { grid-template-columns: 1fr; }
+  .debug-columns { grid-template-columns: 1fr; }
+  .event-panel { padding: 18px; }
+  .story { font-size: 16px; }
+}
+
+.status-grid-v2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.npc-rel-grid {
+  display: grid;
+  gap: 7px;
+}
+.npc-rel-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px dashed #e7e0d5;
+  font-size: 13px;
+}
+.debug-columns-v2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (max-width: 820px) {
+  .status-grid-v2 { grid-template-columns: 1fr; }
+  .debug-columns-v2 { grid-template-columns: 1fr; }
+}
+
+
+.save-status {
+  margin: 8px 0 0;
+  min-height: 1.4em;
+  color: var(--muted, #7b746b);
+  font-size: 0.9rem;
+}
+.save-status.success { color: #4f6a52; }
+.save-status.warn { color: #8a5b43; }
+
+</style>
 </head>
 <body>
-<h1>和亲公主 文字互动游戏</h1>
-<p>你是大梁送往北国的和亲公主，马车已行至边境。</p>
-<button onclick="alert('你选择顺从，继续北上')">顺从前往北国</button>
-<button onclick="alert('你选择连夜逃走')">伺机逃走</button>
-</body>
-</html>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Pre-Alpha · v0.3</p>
+        <h1>《和亲公主》</h1>
+        <p id="dateLabel" class="date-label">第一年 · 一月上旬</p>
+      </div>
+      <div class="top-actions">
+        <button id="newRandomBtn" class="ghost-btn">重开随机档</button>
+        <button id="newDebugBtn" class="ghost-btn">高属性测试档</button>
+        <button id="saveBtn" class="ghost-btn">保存</button>
+        <button id="loadBtn" class="ghost-btn">读取</button>
+        <button id="clearSaveBtn" class="ghost-btn">清除存档</button>
+        <button id="debugToggleBtn" class="ghost-btn">显示调试</button>
+      </div>
+          <p id="saveStatus" class="save-status" aria-live="polite"></p>
+    </header>
+
+    <section class="status-grid status-grid-v2">
+      <article class="panel compact">
+        <h2>主控八维</h2>
+        <div id="attributeGrid" class="stat-grid"></div>
+      </article>
+      <article class="panel compact">
+        <h2>宫廷状态</h2>
+        <div id="resourceGrid" class="stat-grid"></div>
+      </article>
+      <article class="panel compact">
+        <h2>皇帝关系</h2>
+        <div id="emperorGrid" class="stat-grid"></div>
+        <p class="hint">戒备为隐藏轴；调试模式可见。</p>
+      </article>
+      <article class="panel compact">
+        <h2>主要人物</h2>
+        <div id="npcGrid" class="npc-rel-grid"></div>
+        <p class="hint">NPC威胁感仅在调试模式显示。</p>
+      </article>
+    </section>
+
+    <section class="panel event-panel">
+      <div class="event-head">
+        <span id="eventId" class="tag">MAIN_001</span>
+        <h2 id="eventTitle">和亲入京</h2>
+      </div>
+      <div id="eventText" class="story"></div>
+      <div id="choiceArea" class="choices"></div>
+      <div id="resultArea" class="result-area hidden"></div>
+      <div id="continueArea" class="continue-area hidden">
+        <button id="continueBtn" class="primary-btn">继续</button>
+      </div>
+    </section>
+
+    <section id="debugPanel" class="panel debug-panel hidden">
+      <div class="debug-head">
+        <div>
+          <p class="eyebrow">Developer View</p>
+          <h2>状态调试</h2>
+        </div>
+        <span class="hint">原型暂用“小=+5 / 中=+10 / 大=+15”，不代表最终平衡。</span>
+      </div>
+      <div class="debug-columns debug-columns-v2">
+        <div>
+          <h3>Active Flags</h3>
+          <pre id="flagsDebug"></pre>
+        </div>
+        <div>
+          <h3>History</h3>
+          <pre id="historyDebug"></pre>
+        </div>
+        <div>
+          <h3>Completed Events</h3>
+          <pre id="completedDebug"></pre>
+        </div>
+        <div>
+          <h3>Intel Cards</h3>
+          <pre id="intelDebug"></pre>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>v0.3验证：v0.2全部流程 + 浏览器本地存档 + GitHub Pages部署准备。</p>
+    </footer>
+  </main>
+
+  <script>
+window.GAME_EVENTS = {
+  MAIN_001: {
+    id: "MAIN_001",
+    name: "和亲入京",
+    dateLabel: "第一年 · 一月上旬",
+    startNode: "entry",
+    nodes: {
+      entry: {
+        type: "choice",
+        text: () => `
+          <p>车队在帝都主街上走了整整一个时辰。</p>
+          <p>你坐在车中，听见外面的声音。不是欢呼。帝国刚打完胜仗，百姓看和亲队伍的眼神，更像在看一件从败者家中搬来的战利品。有人起哄，有人吹口哨，也有人当着你的面议论故国军队如何不堪。</p>
+          <p>礼部接引官员骑马跟在车旁，隔着帘子向你解释入城仪程。陪嫁女官压低声音：“殿下，百姓如此无礼，要不要奴婢去——”</p>
+          <p>“不用。”你掀开车帘一角。</p>
+          <p>远处，宫城正门的轮廓已经可见。礼部官员试探着问：“公主，可要放下帘子？仪程上写着——”</p>
+          <p>从这条街走到宫城正门，是你作为和亲公主在帝国的第一段路。走成什么样，由你自己定。</p>
+        `,
+        choices: [
+          {
+            id: "A",
+            label: "按故国嫡公主仪制入城，仪扇展开。",
+            apply(state, api) {
+              api.addGlobal("palacePrestige", 5);
+              api.setFlag("FLAG_MAIN001_CEREMONIAL_DISPLAY", "PERMANENT_HISTORY");
+              api.setFlag("FLAG_MAIN001_IMPRESSION_COURT_HIGH_PROFILE", "ACTIVE_STATE");
+              api.setFlag("FLAG_MAIN001_IMPRESSION_TAIHOU_HIGH_PROFILE", "ACTIVE_STATE");
+            },
+            branch: `
+              <p>你放下帘子，声音平静：“开仪扇，鸣鞭。本宫是嫡公主，仪制不能减。”</p>
+              <p>礼部官员低声劝阻，你只回了一句：“正因如此，更不能减。仪制减一分，故国脸上就难看一分。”</p>
+              <p>仪扇展开，鞭声响起。人群安静了许多，更多目光从看热闹变成了打量。</p>
+            `,
+            result: "六宫威望 +5；记录‘高仪制入城’历史。",
+            next: "arrival"
+          },
+          {
+            id: "B",
+            label: "放下帘子，低调入城，暗中观察。",
+            apply(state, api) {
+              api.setFlag("FLAG_MAIN001_LOW_PROFILE_OBSERVE", "PERMANENT_HISTORY");
+              api.setFlag("FLAG_MAIN001_IMPRESSION_COURT_LOW_PROFILE", "ACTIVE_STATE");
+              api.setFlag("FLAG_MAIN001_IMPRESSION_TAIHOU_LOW_PROFILE", "ACTIVE_STATE");
+              api.addIntel({
+                id: "INTEL_MAIN001_FACES_IN_CROWD",
+                name: "入城围观者中有生面孔",
+                source: "主控入城观察",
+                status: "UNVERIFIED",
+                tags: ["入城", "舆论", "宫外"]
+              });
+            },
+            branch: `
+              <p>你放下帘子：“按仪程走即可，不必加仪扇。”</p>
+              <p>车帘垂下，你只留一条缝。看热闹的人群里有几张脸不像普通百姓，起哄的方向又太整齐。</p>
+              <p>礼部官员只当你好说话。他不知道你已经把整个入城变成了第一眼观察。</p>
+            `,
+            result: "获得情报卡【入城围观者中有生面孔】；记录‘低调观察’历史。",
+            next: "arrival"
+          },
+          {
+            id: "C",
+            label: "掀帘端坐，直面百姓目光。",
+            apply(state, api) {
+              api.setFlag("FLAG_MAIN001_DIRECT_GAZE", "PERMANENT_HISTORY");
+              api.setFlag("FLAG_MAIN001_IMPRESSION_COURT_DIRECT", "ACTIVE_STATE");
+              api.setFlag("FLAG_MAIN001_IMPRESSION_TAIHOU_DIRECT", "ACTIVE_STATE");
+            },
+            branch: `
+              <p>你没有放下帘子，反而把帘子完全掀开，端坐车中，任百姓看。</p>
+              <p>有人起哄，你不恼，也不笑，只是平静地看着他们。</p>
+              <p>你听见一句：“人家是战败国送来的，又不是咱们求着来的。”</p>
+              <p>你记住了这句话——在帝国百姓眼里，和亲不是荣耀，是人质。</p>
+            `,
+            result: "记录‘直面百姓’历史；不新增独立民心数值。",
+            next: "arrival"
+          },
+          {
+            id: "D",
+            label: "【谋略≥55】开仪扇但免鞭声，威仪与克制并存。",
+            condition: state => state.attributes.strategy >= 55,
+            conditionText: state => `当前谋略 ${state.attributes.strategy} / 需要 55`,
+            apply(state, api) {
+              api.addGlobal("palacePrestige", 5);
+              api.setFlag("FLAG_MAIN001_BALANCED_DISPLAY", "PERMANENT_HISTORY");
+              api.setFlag("FLAG_MAIN001_IMPRESSION_COURT_BALANCED", "ACTIVE_STATE");
+              api.setFlag("FLAG_MAIN001_IMPRESSION_TAIHOU_BALANCED", "ACTIVE_STATE");
+            },
+            branch: `
+              <p>你入城前夜翻过礼部送来的仪程抄本，此刻吩咐：“仪扇开，但鞭声免了。让人看见故国的体面，也听见故国的分寸。”</p>
+              <p>围观者里有人低声说：“倒不像个亡国的。”礼部官员松了口气，又忍不住多看你一眼。</p>
+            `,
+            result: "六宫威望 +5；记录‘威仪与克制并存’历史。",
+            next: "arrival"
+          }
+        ]
+      },
+      arrival: {
+        type: "text",
+        text: (state, api) => {
+          let extra = "";
+          if (!state.meta.fortuneChecked) {
+            state.meta.fortuneChecked = true;
+            const chance = Math.min(0.55, Math.max(0.08, state.attributes.fortune / 180));
+            if (Math.random() < chance) {
+              api.setFlag("FLAG_MAIN001_ENTRY_IMAGE_CIRCULATED", "ACTIVE_STATE");
+              extra = `<p><strong>【福运触发】</strong>车队行至中段，一阵风吹起车帘。街边画师随手勾下一笔。几日后，一幅“和亲公主入城图”在京中悄悄流传。</p>`;
+            }
+          }
+          return `<p>宫城正门已在眼前。仪程按部就班走完，你被迎入宫中。</p><p>入城这一日，你的名字和仪态，先于你本人，在后宫与御前传开了。</p>${extra}`;
+        },
+        completeEvent: true,
+        nextEvent: "MAIN_002"
+      }
+    }
+  },
+
+  MAIN_002: {
+    id: "MAIN_002",
+    name: "丹墀初见",
+    dateLabel: "第一年 · 一月中旬",
+    startNode: "meeting",
+    nodes: {
+      meeting: {
+        type: "text",
+        text: (state, api) => {
+          let dynamic = "";
+          if (api.hasFlag("FLAG_MAIN001_CEREMONIAL_DISPLAY")) {
+            dynamic = `<p>皇帝抬眼，语气温和：“朕听说，公主入城那日开了仪扇，鸣了鞭。”</p><p>“仪制是故国礼官教的。”你答，“臣妾若到异国第一天就把它全扔了，陛下也会觉得，这个人靠不住吧。”</p>`;
+            api.consumeFlag("FLAG_MAIN001_IMPRESSION_COURT_HIGH_PROFILE");
+          } else if (api.hasFlag("FLAG_MAIN001_LOW_PROFILE_OBSERVE")) {
+            dynamic = `<p>皇帝抬眼，语气温和：“朕听说，公主入城那日没开仪扇，也没鸣鞭。”</p><p>“臣妾是来和亲的，不是来示威的。”你答，“仪程够用就好，多一分少一分，都容易被人拿去做文章。”</p>`;
+            api.consumeFlag("FLAG_MAIN001_IMPRESSION_COURT_LOW_PROFILE");
+          } else if (api.hasFlag("FLAG_MAIN001_DIRECT_GAZE")) {
+            dynamic = `<p>皇帝抬眼，语气温和：“朕听说，公主入城那日掀了帘子，任百姓看。”</p><p>“百姓想看，便让他们看。”你答，“臣妾若连目光都怕，往后在这宫里，怕的东西就太多了。”</p>`;
+            api.consumeFlag("FLAG_MAIN001_IMPRESSION_COURT_DIRECT");
+          } else if (api.hasFlag("FLAG_MAIN001_BALANCED_DISPLAY")) {
+            dynamic = `<p>皇帝抬眼，语气温和：“朕听说，公主入城那日开了仪扇，却免了鞭声。”</p><p>“仪扇是故国的体面，免鞭是臣妾的分寸。”你答，“陛下登基不久，臣妾不想在宫门口先给陛下添一桩议论。”</p>`;
+            api.consumeFlag("FLAG_MAIN001_IMPRESSION_COURT_BALANCED");
+          }
+          const imageLine = api.hasFlag("FLAG_MAIN001_ENTRY_IMAGE_CIRCULATED") ? `<p>他又似随口提了一句：“京里还有人画了你的入城图。”</p>` : "";
+          return `
+            <p>你进宫第三日，接到召见口谕。</p>
+            <p>偏殿里很静。皇帝坐在御案后批折子，没有抬头，只说了句：“坐。”</p>
+            <p>这是你第一次近距离看这位新帝。年轻，眉目温和，批折子的姿势很专注。</p>
+            ${dynamic}${imageLine}
+            <p>他笑了一下，很短。“公主很会说话。”</p>
+            <p>“臣妾说的是实话。”</p>
+            <p>“那朕再问一句实话。”他指尖在案上轻轻敲了两下，“故国国师有句话，跟着公主一起进了京。公主听过么？”</p>
+            <p>“亡己国，兴他国。”</p>
+            <p>他看向你：“公主答这句话的时候，心里想的是故国，还是帝国，还是——”</p>
+            <p>他没有说完。你知道，那半句也是你从今天起每天要想清楚的问题。</p>
+          `;
+        },
+        next: "prophecy"
+      },
+      prophecy: {
+        type: "choice",
+        text: () => `<p><strong>你怎么回答？</strong></p>`,
+        choices: [
+          {
+            id: "A",
+            label: "正面应答：预言是人用出来的，不是天命。",
+            apply(state, api) {
+              api.addRelation("emperor", "favor", 5);
+              api.addRelation("emperor", "trust", 5);
+              api.addRelation("emperor", "vigilance", 5);
+              api.setFlag("FLAG_MAIN002_DIRECT_PROPHECY", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“臣妾不信天，臣妾信人。”你迎着他的目光，“把臣妾送来和亲的是人，不是天。陛下与其担心一个预言，不如看看臣妾这个人能做什么。”</p>`,
+            result: "圣宠 +5｜信任 +5｜戒备 +5",
+            next: "followup"
+          },
+          {
+            id: "B",
+            label: "谨慎作答：只表后宫本分，不认也不辩。",
+            apply(state, api) {
+              api.addRelation("emperor", "favor", 5);
+              api.addRelation("emperor", "vigilance", -5);
+              api.setFlag("FLAG_MAIN002_CAUTIOUS_BOUNDARY", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“预言之事，臣妾不敢妄言。”你垂下眼，“臣妾只知道，臣妾如今是陛下后宫的人。”</p><p>“安分守己。”他重复了一遍，“公主这句话，朕记下了。”</p>`,
+            result: "圣宠 +5｜戒备 -5",
+            next: "followup"
+          },
+          {
+            id: "C",
+            label: "主动示弱：请他给你一个不活在预言里的机会。",
+            apply(state, api) {
+              api.addRelation("emperor", "favor", 10);
+              api.addRelation("emperor", "vigilance", 10);
+              api.setFlag("FLAG_MAIN002_ENTRUST_WEAKNESS", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“如果连陛下都忌惮它，那臣妾这条命，就真的只剩预言了。”你抬眼，“所以臣妾斗胆，请陛下给臣妾一个不活在预言里的机会。”</p><p>他笑了笑：“公主这是在将朕的军。”</p>`,
+            result: "圣宠 +10｜戒备 +10",
+            next: "followup"
+          }
+        ]
+      },
+      followup: {
+        type: "choice",
+        optionalGroup: true,
+        text: () => `<p>话已经答完。你还可以顺着这一瞬的气氛，再做一个动作；也可以就此收住。</p>`,
+        choices: [
+          {
+            id: "NONE",
+            label: "不再多说，就此收住。",
+            apply() {},
+            branch: `<p>你没有再补一句。宫里的话，说到七分往往比说满更安全。</p>`,
+            result: "无额外变化",
+            next: "close"
+          },
+          {
+            id: "D",
+            label: "【心机≥55】留意他正在观察你的手。",
+            condition: state => state.attributes.scheming >= 55,
+            conditionText: state => `当前心机 ${state.attributes.scheming} / 需要 55`,
+            apply(state, api) {
+              api.addRelation("emperor", "trust", 5);
+              api.addRelation("emperor", "vigilance", 5);
+              api.setFlag("FLAG_MAIN002_READS_TEST", "PERMANENT_HISTORY");
+            },
+            branch: `<p>你注意到，他问预言时看的不是你的脸，而是袖口——他在看你攥不攥手。</p><p>于是你双手平放。答完，他状似无意地说：“公主镇定。”</p><p>“陛下问的是话，不是刀。”</p>`,
+            result: "信任 +5｜戒备 +5",
+            next: "close"
+          },
+          {
+            id: "E",
+            label: "【才智≥55】再补一句：预言如何被使用，比预言本身更值得看。",
+            condition: state => state.attributes.wit >= 55,
+            conditionText: state => `当前才智 ${state.attributes.wit} / 需要 55`,
+            apply(state, api) {
+              api.addRelation("emperor", "trust", 10);
+              api.addRelation("emperor", "vigilance", 5);
+              api.setFlag("FLAG_MAIN002_REFRAME_PROPHECY", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“陛下，预言本身不可怕，可怕的是谁在用它、怎么用它。”</p><p>他的笔尖停了。你继续道：“故国有人用它把臣妾推出来，帝国也会有人拿它做文章。陛下若只盯着预言，正好遂了那些人的意。”</p>`,
+            result: "信任 +10｜戒备 +5",
+            next: "close"
+          }
+        ]
+      },
+      close: {
+        type: "text",
+        text: () => `<p>你退出偏殿时，天色未晚。宫人引你回宫，一路无话。</p><p>你知道，今天这场见面，皇帝记住的不会只是你的回答——他记住的是你回答时的样子。</p>`,
+        completeEvent: true,
+        nextEvent: "MAIN_003"
+      }
+    }
+  },
+
+  MAIN_003: {
+    id: "MAIN_003",
+    name: "拜见太后",
+    dateLabel: "第一年 · 一月中旬",
+    startNode: "audience",
+    nodes: {
+      audience: {
+        type: "text",
+        text: () => `
+          <p>太后正殿比你想象中素净。没有张扬的陈设，殿内一切都沉、稳、旧。</p>
+          <p>太后坐在上首，鬓边有霜，眼神却不老。</p>
+          <p>“起来吧。”她声音平缓，“走近些，让哀家看看。”</p>
+          <p>你依言上前，行礼，垂手立着。</p>
+          <p>她打量你的方式很安静，不快不慢，像在看一件需要先登记、再判断用途的器物。</p>
+          <p>“眉眼像你母亲么？”她忽然问。</p>
+          <p>“回太后，宫中老人说，像几分。”</p>
+          <p>“你母亲的事，哀家听说了。”她端起茶盏，“哀家只问你一句——你弟弟如今在故国，日子不好过吧？”</p>
+          <p>殿内很静。她问的不是一句家常。她在看，你心里究竟装着多少故国。</p>
+          <p>“回太后，不好过。”</p>
+          <p>太后放下茶盏：“哀家不问你打算怎么办。只是提醒你——别人递来的手，未必都是扶你的。接之前，先看清是谁的手。”</p>
+        `,
+        next: "response"
+      },
+      response: {
+        type: "choice",
+        text: () => `<p><strong>你怎么接这句话？</strong></p>`,
+        choices: [
+          {
+            id: "A",
+            label: "表明安分：先让她觉得你可控。",
+            apply(state, api) {
+              api.addRelation("taihou", "threat", -5);
+              api.addRelation("taihou", "favor", -5);
+              api.setFlag("FLAG_MAIN003_DUAL_OBEDIENCE", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“太后教诲，臣妾记下。”你躬身，“臣妾和亲而来，身份尴尬，只求先把宫里的规矩学明白，不给陛下与太后添乱。”</p><p>太后看了你一会儿，只道：“先学规矩，也好。”</p>`,
+            result: "太后威胁 -5｜太后好感 -5",
+            next: "observe"
+          },
+          {
+            id: "B",
+            label: "有限亮价值：故国的缝隙，你比别人更熟。",
+            apply(state, api) {
+              api.addRelation("taihou", "favor", 10);
+              api.addRelation("taihou", "threat", 10);
+              api.setFlag("FLAG_MAIN003_VALUE_BARGAIN", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“臣妾在故国无根，在帝国也无根。”你抬眼，“可也正因为如此，臣妾知道故国宫廷里哪些地方最容易裂开。”</p><p>太后的目光微动。</p><p>“臣妾不敢说能替谁做刀。”你顿了顿，“但若有一天要谈故国，臣妾至少不是最没用的那个人。”</p><p>太后靠回椅背：“这句话，比‘安分’有意思。”</p>`,
+            result: "太后好感 +10｜太后威胁 +10",
+            next: "observe"
+          },
+          {
+            id: "C",
+            label: "反问她：她看重的是你的血统，还是你这个人。",
+            apply(state, api) {
+              api.addRelation("taihou", "favor", 5);
+              api.addRelation("taihou", "threat", 10);
+              api.setFlag("FLAG_MAIN003_PROBE_TRUTH", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“太后问臣妾弟弟，臣妾斗胆，也问太后一句。”</p><p>“讲。”</p><p>“太后看重臣妾，是因为臣妾身上流着故国的血，还是因为臣妾这个人？”</p><p>太后的眼神变了，不是怒，是重新估量。</p><p>“你很敢讲。”</p><p>“因为太后问的是实话。”</p>`,
+            result: "太后好感 +5｜太后威胁 +10",
+            next: "observe"
+          }
+        ]
+      },
+      observe: {
+        type: "choice",
+        optionalGroup: true,
+        text: (state) => {
+          const grace = state.attributes.temperament >= 55
+            ? `<p><strong>【气质触发】</strong>从进殿到此刻，你的礼仪始终没有出错。太后没有夸，只在你起身时多看了一眼。</p>`
+            : "";
+          return `${grace}<p>谈话将尽。你还要不要多留意一眼这间殿里的人和事？</p>`;
+        },
+        autoApply(state, api) {
+          if (state.attributes.temperament >= 55 && !api.hasFlag("FLAG_MAIN003_TAIHOU_RECORDS_NAME")) {
+            api.addRelation("taihou", "favor", 5);
+            api.addGlobal("palacePrestige", 5);
+            api.setFlag("FLAG_MAIN003_TAIHOU_RECORDS_NAME", "PERMANENT_HISTORY");
+          }
+        },
+        choices: [
+          {
+            id: "NONE",
+            label: "不再试探，就此告退。",
+            apply() {},
+            branch: `<p>你没有再多看。第一次见面，知道什么时候收住，比知道更多更重要。</p>`,
+            result: "无额外变化",
+            next: "close"
+          },
+          {
+            id: "D",
+            label: "【心机≥55】留意尚宫对陪嫁名册的熟悉程度。",
+            condition: state => state.attributes.scheming >= 55,
+            conditionText: state => `当前心机 ${state.attributes.scheming} / 需要 55`,
+            apply(state, api) {
+              api.addRelation("taihou", "favor", 5);
+              api.addRelation("taihou", "threat", 5);
+              api.setFlag("FLAG_MAIN003_NOTICES_ARCHIVE", "ONE_SHOT");
+            },
+            branch: `<p>你注意到尚宫奉茶时，对陪嫁名册里的姓名与人数熟得过分。慈宁宫显然在你进殿之前就做过功课。</p><p>你不点破，只把这件事记下。</p>`,
+            result: "太后好感 +5｜太后威胁 +5｜记录观察Flag",
+            next: "close"
+          }
+        ]
+      },
+      close: {
+        type: "text",
+        text: () => `<p>你退出太后正殿。入宫与册封礼仪已按流程走完，从今日起，你正式进入这座后宫的秩序里。</p><p>真正的路，从现在才开始。</p>`,
+        completeEvent: true,
+        nextEvent: "MAIN_004"
+      }
+    }
+  },
+
+  MAIN_004: {
+    id: "MAIN_004",
+    name: "六宫初宴",
+    dateLabel: "第一年 · 二月上旬",
+    startNode: "wardrobe",
+    nodes: {
+      wardrobe: {
+        type: "choice",
+        text: () => `
+          <p>开宴前一刻钟，尚宫来请，说今日茶宴在御花园，请各宫自行斟酌穿戴。</p>
+          <p>宫女捧出三套衣服。</p>
+          <p><strong>衣甲</strong>：帝国端庄宫装。规矩、克制，不出错。</p>
+          <p><strong>衣乙</strong>：故国异域礼服。最显眼，也最容易被人记住。</p>
+          <p><strong>衣丙</strong>：简素常服。低调，不站队。</p>
+          <p>你伸手，取下——</p>
+        `,
+        choices: [
+          {
+            id: "A",
+            label: "衣甲｜帝国端庄宫装",
+            apply(state, api) { api.setFlag("FLAG_MAIN004_WEARS_A", "PERMANENT_HISTORY"); },
+            branch: `<p>铜镜里的人规矩、克制。今日你要的，是先站住。</p>`,
+            result: "记录服装：帝国端庄宫装",
+            next: "banquet"
+          },
+          {
+            id: "B",
+            label: "衣乙｜故国异域礼服",
+            apply(state, api) { api.setFlag("FLAG_MAIN004_WEARS_B", "PERMANENT_HISTORY"); },
+            branch: `<p>故国纹样落在肩头。你知道这身衣服很显眼——显眼有代价，也有好处：至少没人会把你当背景。</p>`,
+            result: "记录服装：故国异域礼服",
+            next: "banquet"
+          },
+          {
+            id: "C",
+            label: "衣丙｜简素常服",
+            apply(state, api) { api.setFlag("FLAG_MAIN004_WEARS_C", "PERMANENT_HISTORY"); },
+            branch: `<p>青色素纹，无多余佩饰。今日第一次六宫同席，你决定先看清别人，再让别人看清你。</p>`,
+            result: "记录服装：简素常服",
+            next: "banquet"
+          }
+        ]
+      },
+      banquet: {
+        type: "text",
+        text: (state, api) => {
+          let clothing = "";
+          if (api.hasFlag("FLAG_MAIN004_WEARS_A")) {
+            clothing = `<p>你穿着帝国制式宫装入席。华贵妃多看了你两眼，目光很快移开——合规，克制，没有给任何人现成话柄。</p>`;
+          } else if (api.hasFlag("FLAG_MAIN004_WEARS_B")) {
+            clothing = `<p>你穿着故国礼服入席，殿内有一瞬安静。有人是好奇，有人是打量。华贵妃的目光在你衣上停了片刻，没有评价。</p>`;
+          } else {
+            clothing = `<p>你穿得素净，入席时几乎没有声响。华贵妃的目光扫过来，没有停留——这正是你选这身衣裳的理由之一。</p>`;
+          }
+          return `
+            <p>临水轩里已经坐了大半的人。太后居中，各宫按位分落座。</p>
+            ${clothing}
+            <p>华贵妃坐在上首左侧，神情端正；李贤妃与人说话时总留半句余地；赵婕妤则笑得最松，像什么都不放在心上。</p>
+            <p>皇帝中途到了片刻。满殿起身，他摆摆手让众人免礼，在你身上停了半息，喝了盏茶便走。</p>
+            <p>他一走，气氛松下来。</p>
+            <p>赵婕妤托着腮，先笑了：“公主这身打扮倒有意思。故国的衣裳与咱们这里，差得很么？”</p>
+            <p>李贤妃温声接了一句：“赵妹妹只是好奇。公主若住得惯，便是最好。”</p>
+            <p>太后放下茶盏：“既说到这里，哀家也想听听。两国礼俗，有什么不同？”</p>
+            <p>满殿的目光落到你身上。她没有逼你表演，只是把一个话头放到了你面前。</p>
+          `;
+        },
+        next: "social"
+      },
+      social: {
+        type: "choice",
+        text: () => `<p><strong>你怎么答？</strong></p>`,
+        choices: [
+          {
+            id: "A",
+            label: "展示一个简单的故国常礼，点到即止。",
+            apply(state, api) {
+              api.addRelation("taihou", "favor", 5);
+              api.addGlobal("palacePrestige", 5);
+              api.addRelation("huagui", "favor", 5);
+              api.addRelation("huagui", "threat", 5);
+              api.setFlag("FLAG_MAIN004_RESPONSE_DEMONSTRATE", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“太后既问礼俗，臣妾便只演示一个最寻常的见长辈礼。”你起身，动作不繁，三息即止。</p><p>“故国礼制细节与帝国不同，臣妾不敢说孰优孰劣。今日只是让太后与诸位姐妹看个新鲜。”</p><p>太后点了点头。华贵妃第一次正眼看你：“公主很会收分寸。”</p>`,
+            result: "太后好感 +5｜六宫威望 +5｜华贵妃好感 +5｜华贵妃威胁 +5",
+            next: "close"
+          },
+          {
+            id: "B",
+            label: "只做语言介绍，不起身、不表演。",
+            apply(state, api) {
+              api.addRelation("taihou", "favor", 5);
+              api.addRelation("lixian", "favor", 5);
+              api.setFlag("FLAG_MAIN004_RESPONSE_EXPLAIN", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“回太后，两国礼制差异不少，但都离不开尊卑、场合与身份。”你端坐答话，“臣妾初来，正好也在学帝国规矩。若以后有机会，再把差异一一讲给太后听。”</p><p>太后只道：“不急。”</p><p>李贤妃笑了一下：“公主这样说，倒叫人更想听了。”</p>`,
+            result: "太后好感 +5｜李贤妃好感 +5",
+            next: "close"
+          },
+          {
+            id: "C",
+            label: "把话头引回赵婕妤，改日送她一份故国衣谱。",
+            apply(state, api) {
+              api.addRelation("zhao", "favor", 10);
+              api.addRelation("taihou", "favor", 5);
+              api.addRelation("lixian", "threat", 5);
+              api.setFlag("FLAG_MAIN004_RESPONSE_REDIRECT", "PERMANENT_HISTORY");
+              api.setFlag("FLAG_ZJY_OWED_CLOTHING_COPY", "ACTIVE_STATE");
+            },
+            branch: `<p>“太后问礼俗，臣妾倒想起一件事。”你看向赵婕妤，“娘娘既好奇故国衣裳，臣妾改日抄一份衣谱送您。很多礼数，其实都藏在穿戴里。”</p><p>赵婕妤眼睛一亮：“这话可是你自己说的。”</p><p>太后笑了笑：“你倒会顺水推舟。”</p>`,
+            result: "赵婕妤好感 +10｜太后好感 +5｜李贤妃威胁 +5｜记录衣谱人情",
+            next: "close"
+          },
+          {
+            id: "D",
+            label: "【才智≥55】只谈礼制因国而异，不评价优劣。",
+            condition: state => state.attributes.wit >= 55,
+            conditionText: state => `当前才智 ${state.attributes.wit} / 需要 55`,
+            apply(state, api) {
+              api.addRelation("taihou", "favor", 5);
+              api.addGlobal("palacePrestige", 5);
+              api.addRelation("huagui", "favor", 5);
+              api.setFlag("FLAG_MAIN004_RESPONSE_WISE", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“回太后，礼制是给人用的，也是给国用的。”你缓缓道，“国情不同，礼自然不同。臣妾若拿故国礼数来评帝国，是不知分寸；若进了帝国便说故国礼数一无是处，也是忘本。”</p><p>太后沉默片刻：“这句话，倒稳。”</p><p>华贵妃端着茶盏，目光在你脸上停了一瞬。</p>`,
+            result: "太后好感 +5｜六宫威望 +5｜华贵妃好感 +5",
+            next: "close"
+          }
+        ]
+      },
+      close: {
+        type: "text",
+        text: () => `<p>茶宴散时，天色尚早。</p><p>你走出御花园，身后是渐渐散去的笑语。今日没有输赢，但你已经记住了三个人——华贵妃、李贤妃、赵婕妤。</p><p>同样，她们也记住了你。</p>`,
+        completeEvent: true,
+        nextEvent: "HGF_001"
+      }
+    }
+  },
+
+  HGF_001: {
+    id: "HGF_001",
+    name: "第一次私下交锋",
+    dateLabel: "第一年 · 二月下旬",
+    startNode: "meet",
+    nodes: {
+      meet: {
+        type: "text",
+        text: (state, api) => {
+          let entryRef = "";
+          if (api.hasFlag("FLAG_MAIN001_CEREMONIAL_DISPLAY")) entryRef = "入城开仪扇";
+          else if (api.hasFlag("FLAG_MAIN001_BALANCED_DISPLAY")) entryRef = "入城仪制拿捏得有分寸";
+          else if (api.hasFlag("FLAG_MAIN001_LOW_PROFILE_OBSERVE")) entryRef = "入城时倒低调";
+          else if (api.hasFlag("FLAG_MAIN001_DIRECT_GAZE")) entryRef = "入城便敢掀帘让百姓看";
+
+          let banquetRef = "";
+          if (api.hasFlag("FLAG_MAIN004_RESPONSE_DEMONSTRATE")) banquetRef = "席上那一礼";
+          else if (api.hasFlag("FLAG_MAIN004_RESPONSE_EXPLAIN")) banquetRef = "席上只动嘴、不动身";
+          else if (api.hasFlag("FLAG_MAIN004_RESPONSE_REDIRECT")) banquetRef = "把话递给赵婕妤";
+          else if (api.hasFlag("FLAG_MAIN004_RESPONSE_WISE")) banquetRef = "席上那句‘不忘本，也不失分寸’";
+
+          const refs = [entryRef, banquetRef].filter(Boolean);
+          const remembered = refs.length ? `“${refs.join("，又")}。”她看着你，“公主做事，倒是很少白做。”` : `“公主进宫不久，倒已经让不少人记住了。”`;
+
+          return `
+            <p>茶宴后的几日，你在御花园廊下遇见华贵妃。</p>
+            <p>她站在三步外，神情比席间松一些，锐意却更明显。</p>
+            <p>${remembered}</p>
+            <p>“娘娘在席上一直没说话。”你说，“原来都记着。”</p>
+            <p>“本宫不说话，不代表本宫没看见。”她走近半步，“本宫只是好奇。你做这些，是想争宠，还是想立身，还是想让某些人看见你？”</p>
+            <p>她与皇帝少年时相识，这件事宫中无人不知。她没有提皇帝，却也不必提。</p>
+            <p>“娘娘觉得呢？”</p>
+            <p>“本宫觉得，你不是来争一时高低的。”她看着你，“所以本宫只问一句——公主在帝国，打算待多久？”</p>
+            <p>这句话很轻，也很重。无论怎么答，都是底牌的一角。</p>
+          `;
+        },
+        next: "response"
+      },
+      response: {
+        type: "choice",
+        text: () => `<p><strong>你怎么回答华贵妃？</strong></p>`,
+        choices: [
+          {
+            id: "A",
+            label: "正面亮分寸：留下来，但未必与你争同一样东西。",
+            apply(state, api) {
+              api.addRelation("huagui", "favor", 10);
+              api.addRelation("huagui", "threat", -5);
+              api.setFlag("FLAG_HGF001_CREDIBILITY_THREE_TENTHS", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“娘娘问错了。该问的不是臣妾打算待多久，而是这座宫城打算留臣妾多久。”</p><p>华贵妃眉梢微动。</p><p>“臣妾会留下。”你说，“但娘娘要的东西，和臣妾要的东西，未必在一个盒子里。”</p><p>她看了你很久，终于笑了：“本宫暂且信三分。”</p>`,
+            result: "华贵妃好感 +10｜华贵妃威胁 -5",
+            next: "followup"
+          },
+          {
+            id: "B",
+            label: "以退为进：先示弱，换她主动递一句提醒。",
+            apply(state, api) {
+              api.addRelation("huagui", "favor", 5);
+              api.addRelation("huagui", "threat", -5);
+              api.addIntel({
+                id: "INTEL_HGF001_PALACE_RUMOR",
+                name: "宫中关于和亲公主的闲话",
+                source: "华贵妃提点",
+                status: "PARTIAL",
+                tags: ["舆论", "和亲", "后宫"]
+              });
+              api.setFlag("FLAG_HGF001_YIELDS_HALF_STEP", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“娘娘看得透。”你垂眼，“臣妾一个战败国公主，在这里无根无基，先求站稳而已。”</p><p>华贵妃看了你片刻：“站稳可以。只是最近宫里关于你的闲话，传得很快。公主若有空琢磨本宫，不如先去看看谁在替你说话。”</p><p>她走后，你才抬眼。输了半步，换来一个方向。值得。</p>`,
+            result: "华贵妃好感 +5｜华贵妃威胁 -5｜获得情报卡【宫中关于和亲公主的闲话】",
+            next: "followup"
+          },
+          {
+            id: "C",
+            label: "坦诚：你要往上走，也尊重她的分量。",
+            apply(state, api) {
+              api.addRelation("huagui", "favor", 15);
+              api.addRelation("huagui", "threat", 5);
+              api.setFlag("FLAG_HGF001_OLD_FRIEND_SECOND", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“臣妾要往上走。”你没有绕，“不是因为喜欢争，是因为身后没有退路。”</p><p>你看着她：“至于娘娘——今日席上看得出来，娘娘能站在这里，不是靠运气。臣妾敬的是这个。”</p><p>华贵妃怔了一瞬，随即失笑：“敢这么同本宫说话的人，不多。”</p>`,
+            result: "华贵妃好感 +15｜华贵妃威胁 +5",
+            next: "followup"
+          }
+        ]
+      },
+      followup: {
+        type: "choice",
+        optionalGroup: true,
+        text: () => `<p>她没有立刻走。你还可以再推半步，也可以到此为止。</p>`,
+        choices: [
+          {
+            id: "NONE",
+            label: "到此为止，不再试探。",
+            apply() {},
+            branch: `<p>你没有再问。第一次单独交锋，够了。</p>`,
+            result: "无额外变化",
+            next: "close"
+          },
+          {
+            id: "D",
+            label: "【心机≥55】看出她问‘待多久’时，情绪有一瞬变化。",
+            condition: state => state.attributes.scheming >= 55,
+            conditionText: state => `当前心机 ${state.attributes.scheming} / 需要 55`,
+            apply(state, api) {
+              api.addRelation("huagui", "favor", 5);
+              api.addRelation("huagui", "threat", 10);
+              api.setFlag("FLAG_HGF001_READS_MEMORY", "PERMANENT_HISTORY");
+            },
+            branch: `<p>你没有点破那一瞬，只轻声道：“娘娘这句话，听起来不只是问臣妾。”</p><p>她的眼神第一次真正冷下来，又很快恢复。</p><p>“公主很聪明。”</p><p>“聪明一点，才知道什么不该问到底。”</p>`,
+            result: "华贵妃好感 +5｜华贵妃威胁 +10",
+            next: "close"
+          },
+          {
+            id: "E",
+            label: "【谋略≥55】从公开权力结构反问：你怕的究竟是谁借我做文章？",
+            condition: state => state.attributes.strategy >= 55,
+            conditionText: state => `当前谋略 ${state.attributes.strategy} / 需要 55`,
+            apply(state, api) {
+              api.addRelation("huagui", "favor", 5);
+              api.addRelation("huagui", "threat", 15);
+              api.setFlag("FLAG_HGF001_BOUNDARY_SIGNAL", "PERMANENT_HISTORY");
+            },
+            branch: `<p>“娘娘今日来问臣妾，是怕臣妾留下，还是怕臣妾留下以后，被别人借去做文章？”</p><p>华贵妃的眼神变了。</p><p>“公主知道自己在说什么？”</p><p>“知道。所以臣妾只在这里说。”</p><p>她看了你半晌：“今日是本宫小看你了。”</p>`,
+            result: "华贵妃好感 +5｜华贵妃威胁 +15",
+            next: "close"
+          }
+        ]
+      },
+      close: {
+        type: "text",
+        text: () => `<p>廊下的风停了。你与她各自往不同方向走。</p><p>没有输赢。只是从今天开始，你们都知道：对方不是一句“宠妃”或“和亲公主”就能概括的人。</p>`,
+        completeEvent: true,
+        finishPrototype: true
+      }
+    }
+  }
+};
+
+</script>
+  <script>
+(() => {
+  const $ = sel => document.querySelector(sel);
+  const events = window.GAME_EVENTS;
+
+  const labels = {
+    appearance: "容貌", posture: "体态", temperament: "气质", wit: "才智",
+    scheming: "心机", strategy: "谋略", constitution: "体质", fortune: "福运",
+    silver: "银两", staffLoyalty: "宫人忠诚", palacePrestige: "六宫威望", courtSupport: "朝堂支持",
+    favor: "好感", threat: "威胁", emperorFavor: "圣宠", emperorTrust: "帝王信任", emperorVigilance: "帝王戒备"
+  };
+
+  const SAVE_KEY = "heqinPrincessSaveV03";
+  const SAVE_VERSION = 3;
+
+  let debugVisible = false;
+  let state = null;
+
+  function randomStat(min = 38, max = 72) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function createState(debug = false) {
+    return {
+      date: { year: 1, month: 1, period: "上旬" },
+      attributes: {
+        appearance: debug ? 72 : randomStat(),
+        posture: debug ? 68 : randomStat(),
+        temperament: debug ? 70 : randomStat(),
+        wit: debug ? 80 : randomStat(),
+        scheming: debug ? 80 : randomStat(),
+        strategy: debug ? 80 : randomStat(),
+        constitution: debug ? 62 : randomStat(),
+        fortune: debug ? 80 : randomStat(25, 80)
+      },
+      globals: {
+        silver: 500,
+        staffLoyalty: 50,
+        palacePrestige: 0,
+        courtSupport: 0
+      },
+      relations: {
+        emperor: { favor: 0, trust: 0, vigilance: 0 },
+        taihou: { favor: 0, threat: 0 },
+        huagui: { favor: 0, threat: 0 },
+        lixian: { favor: 0, threat: 0 },
+        zhao: { favor: 0, threat: 0 },
+        guard: { favor: 0, threat: 0 }
+      },
+      intel: {},
+      flags: {},
+      history: [],
+      completedEvents: [],
+      currentEventId: "MAIN_001",
+      currentNodeId: "entry",
+      meta: {
+        saveVersion: SAVE_VERSION,
+        fortuneChecked: false,
+        autoAppliedNodes: {}
+      }
+    };
+  }
+
+
+  function setSaveStatus(message, kind = "") {
+    const el = $("#saveStatus");
+    if (!el) return;
+    el.textContent = message || "";
+    el.className = `save-status ${kind}`.trim();
+  }
+
+  function normalizeLoadedState(raw) {
+    if (!raw || typeof raw !== "object") throw new Error("存档格式无效");
+    if (!raw.meta || raw.meta.saveVersion !== SAVE_VERSION) throw new Error("存档版本不兼容");
+    if (!raw.currentEventId || !raw.currentNodeId) throw new Error("存档缺少当前位置");
+    return raw;
+  }
+
+  function saveGame(silent = false) {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+      if (!silent) setSaveStatus("已保存到本机浏览器。", "success");
+      return true;
+    } catch (err) {
+      setSaveStatus(`保存失败：${err.message}`, "warn");
+      return false;
+    }
+  }
+
+  function loadGame() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) {
+        setSaveStatus("没有找到本机存档。", "warn");
+        return;
+      }
+      state = normalizeLoadedState(JSON.parse(raw));
+      setSaveStatus("已读取本机存档。", "success");
