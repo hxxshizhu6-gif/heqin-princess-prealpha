@@ -3120,6 +3120,102 @@ window.GAME_EVENTS = {
     }
   },
 
+  JULY_001:{
+    id:"JULY_001",
+    name:"七月·旧路生新枝",
+    category:"HUB",
+    dateLabel:"第一年 · 七月上旬",
+    startNode:"intro",
+    nodes:{
+      intro:{
+        type:"text",
+        autoApply(state){
+          state.date={year:1,month:7,period:"上旬"};
+          state.meta.monthActionCount=0;
+          state.meta.actionPoints=state.meta.maxActionPoints||3;
+          state.meta.periodActionCounts={};
+          state.meta.currentLocation="ROOM";
+          state.meta.outsidePasses=1;
+          state.meta.actionsSinceRandom=0;
+          state.meta.monthStartSnapshot={
+            attributes:{...state.attributes},
+            globals:{...state.globals},
+            relations:JSON.parse(JSON.stringify(state.relations||{})),
+            wardrobe:JSON.parse(JSON.stringify(state.wardrobe||{}))
+          };
+        },
+        text:state=>`
+          <p><strong>七月开始。</strong></p>
+          <p>前几个月，你已经学会怎么在宫里走、怎么把有限的行动点花在自己身上。现在，同样的路会开始长出更长期的东西。</p>
+          <p><strong>本月重点测试四层：</strong>位份例银、侍寝机制、宫中人物属性档案，以及地点固定人脉。</p>
+          <p>太医院不再只是“去一次抽一次事件”；尚宫局的钱也终于有了用途。你可以继续按原来的九点养成节奏走完整个月。</p>
+          <div class="result-box">
+            <p><strong>当前身份</strong></p>
+            <p>位份：${state.court?.rank||"妃"}｜月例标准：${window.GAME_RULES.stipendFor(state.court?.rank||"妃")}两</p>
+          </div>
+        `,
+        completeEvent:true,
+        nextEvent:"MAP_HUB"
+      }
+    }
+  },
+
+  MONTHLY_005:{
+    id:"MONTHLY_005",
+    name:"七月结算",
+    category:"HUB",
+    dateLabel:"第一年 · 七月月末",
+    startNode:"summary",
+    nodes:{
+      summary:{
+        type:"text",
+        autoApply(state,api){
+          if(!api.hasFlag("FLAG_STIPEND_M07")){
+            const stipend=window.GAME_RULES.stipendFor(state.court?.rank||"妃");
+            api.addGlobal("silver",stipend);
+            state.meta.lastStipendAmount=stipend;
+            api.setFlag("FLAG_STIPEND_M07","PERMANENT_HISTORY");
+          }
+          state.date={year:1,month:8,period:"上旬"};
+        },
+        text:state=>{
+          const physician=state.contacts?.physician?.familiarity||0;
+          const temple=state.contacts?.templeContact?.familiarity||0;
+          return `
+            <p><strong>七月结束。</strong></p>
+            <p>本月例银已经按当前位份发放：<strong>+${state.meta.lastStipendAmount||0}两</strong>。</p>
+            <div class="result-box">
+              <p><strong>长期关系开始留下痕迹</strong></p>
+              <p>太医院医官熟悉度：${physician}<br>寺外女掌柜熟悉度：${temple}<br>累计侍寝：${state.meta.bedchamberCount||0}次</p>
+            </div>
+            <p>银两不再只是库存；人物也不再只有好感。后续主动宫斗、调查与收买都会继续读取这些长期状态。</p>
+          `;
+        },
+        completeEvent:true,
+        nextEvent:"PROTO_V10_END"
+      }
+    }
+  },
+
+  PROTO_V10_END:{
+    id:"PROTO_V10_END",
+    name:"八月将启",
+    category:"HUB",
+    dateLabel:"第一年 · 八月上旬",
+    startNode:"end",
+    nodes:{
+      end:{
+        type:"text",
+        text:state=>`
+          <p><strong>v1.0 基础制度测试月已跑通。</strong></p>
+          <p>当前累计主动养成：${state.meta.actionCount||0}次；银两：${state.globals.silver}；侍寝：${state.meta.bedchamberCount||0}次。</p>
+          <p>下一层可以正式进入：宫女人事、库房资源、案卷调查，以及主动造谣 / 下毒 / 嫁祸的宫斗框架。</p>
+        `,
+        finishPrototype:true
+      }
+    }
+  },
+
   PROTO_V09_END:{
     id:"PROTO_V09_END",
     name:"七月将启",
@@ -3235,7 +3331,7 @@ window.GAME_EVENTS = {
   };
 
   const SAVE_KEY = "heqinPrincessSaveV03";
-  const SAVE_VERSION = 10;
+  const SAVE_VERSION = 11;
 
   let debugVisible = false;
   let state = null;
@@ -3424,6 +3520,18 @@ window.GAME_EVENTS = {
       raw.meta.monthStartSnapshot = null;
       raw.meta.currentLocation = "ROOM";
       raw.meta.outsidePasses = 1;
+      raw.meta.locationVisits = { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0, SHANGGONG:0, TAIYI:0, TEMPLE:0, INN:0 };
+    }
+    if (raw.currentEventId === "PROTO_V09_END") {
+      raw.currentEventId = "JULY_001";
+      raw.currentNodeId = "intro";
+      raw.date = { year: 1, month: 7, period: "上旬" };
+      raw.meta.monthActionCount = 0;
+      raw.meta.actionPoints = raw.meta.maxActionPoints || 3;
+      raw.meta.monthStartSnapshot = null;
+      raw.meta.currentLocation = "ROOM";
+      raw.meta.outsidePasses = 1;
+      raw.meta.actionsSinceRandom = 0;
       raw.meta.locationVisits = { ROOM:0, GARDEN:0, LIBRARY:0, TAIHOU:0, SHANGGONG:0, TAIYI:0, TEMPLE:0, INN:0 };
     }
     if (!raw.currentEventId || !raw.currentNodeId) throw new Error("存档缺少当前位置");
@@ -3679,6 +3787,15 @@ window.GAME_EVENTS = {
         return;
       }
       state.currentEventId = "MONTHLY_004";
+      state.currentNodeId = "summary";
+    } else if (finishingMonth && state.date.year === 1 && state.date.month === 7) {
+      state.meta.actionPoints = 0;
+      if (maybeTriggerBedchamber("MONTHLY_005")) {
+        autoSave();
+        render();
+        return;
+      }
+      state.currentEventId = "MONTHLY_005";
       state.currentNodeId = "summary";
     } else {
       advancePeriod();
